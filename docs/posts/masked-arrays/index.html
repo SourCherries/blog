@@ -2,14 +2,14 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.2.247">
+<meta name="generator" content="quarto-1.2.269">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Carl Gaspar">
 <meta name="dcterms.date" content="2023-08-01">
 
-<title>PersonalBlog - Numpy masked arrays</title>
+<title>PersonalBlog - Why masked arrays are useful for data science</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -124,6 +124,7 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
   }
 }</script>
 
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
 
 <link rel="stylesheet" href="../../styles.css">
 </head>
@@ -168,11 +169,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 <header id="title-block-header" class="quarto-title-block default page-columns page-full">
   <div class="quarto-title-banner page-columns page-full">
     <div class="quarto-title column-body">
-      <h1 class="title">Numpy masked arrays</h1>
+      <h1 class="title">Why masked arrays are useful for data science</h1>
                                 <div class="quarto-categories">
                 <div class="quarto-category">numpy</div>
-                <div class="quarto-category">missing-data</div>
-                <div class="quarto-category">matrices</div>
+                <div class="quarto-category">missing data</div>
+                <div class="quarto-category">pairwise comparisons</div>
               </div>
                   </div>
   </div>
@@ -208,15 +209,102 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<p>This is a post with executable code.</p>
-<div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="dv">1</span> <span class="sc">+</span> <span class="dv">1</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Ever wanted to know why Numpy masked arrays are useful? Ever needed to compare lots of variables and struggled with missing data?</p>
+<p>Computations that are core to data science can be accelerated with the use of matrix operations. But real-world data has missing values and these can make matrix computations useless. Does that mean one must resort to inefficient for-loops when missing data is present?</p>
+<p>No.&nbsp;Using Numpy masked arrays one can still reap the benefits of matrix operations whilst making full use of one’s data.</p>
+<p>What kinds of things are we measuring here? We focus on pairwise comparisons among a large set of variables. The most familiar example is the <strong>covariance matrix</strong> but that is not all.</p>
+<p>The approach described here generalizes to many cases where pairwise comparisons of some kind are to be calculated. I describe how to use masked arrays to calculate <strong>percentage agreement</strong> (and <strong>Cohen’s kappa coefficient</strong>). That is what I happened to be working on recently.</p>
+<p>So we’ll start with covariance matrices. Then I’ll show you a trick to quickly get matrices of percentage agreement (and <strong>Cohen’s kappa coefficient</strong>) even with missing data.</p>
+<section id="covariance-matrices" class="level2">
+<h2 class="anchored" data-anchor-id="covariance-matrices">Covariance matrices</h2>
+<p>I will go over a simple example that will remind you what a covariance matrix is, and how it can be calculated using matrix multiplication.</p>
+<p>Here is some example data with 3 samples of 3 variables:</p>
+<div class="cell" data-execution_count="1">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="op">-</span><span class="dv">3</span>, <span class="dv">3</span>, <span class="dv">0</span>],</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>              [ <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>],</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>              [ <span class="dv">3</span>,<span class="op">-</span><span class="dv">3</span>, <span class="dv">0</span>]])</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>number_samples, number_variables <span class="op">=</span> X.shape</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>We will get the covariance matrix using both Numpy and Pandas because there are some important differences. So here’s the data in Pandas:</p>
+<div class="cell" data-execution_count="2">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>X_ <span class="op">=</span> pd.DataFrame(X, columns <span class="op">=</span> [<span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>], index <span class="op">=</span> [<span class="st">"sample "</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,<span class="dv">4</span>)])              </span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(X_)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 2</code></pre>
+<pre><code>          A  B  C
+sample 1 -3  3  0
+sample 2  0  0  0
+sample 3  3 -3  0</code></pre>
 </div>
 </div>
+<p>The covariance matrix is a matrix showing the covariance between each pair of variables.</p>
+<div class="cell" data-execution_count="3">
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Using Numpy</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#   rowvar is False so that columns are variables</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#   bias is True to simplify our examples</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>C <span class="op">=</span> np.cov(X, rowvar<span class="op">=</span><span class="va">False</span>, bias<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Using Pandas</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">#   ddof is 0 (same as bias is True above)</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>C_ <span class="op">=</span> X_.cov(ddof<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(C_)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>     A    B    C
+A  6.0 -6.0  0.0
+B -6.0  6.0  0.0
+C  0.0  0.0  0.0</code></pre>
+</div>
+</div>
+<p>As you can see the covariance between variables <code>A</code> and <code>B</code> is <span class="math inline">\(-6\)</span>. The covariance between <code>C</code> and both <code>A</code> and <code>B</code> is <span class="math inline">\(0\)</span>.</p>
+<p>Covariance is the expected product between 2 variables that are first centered at 0. We estimate it with the mean product.</p>
+<p>Our variables are already centered at zero:</p>
+<div class="cell" data-execution_count="4">
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>C_.<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">0</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
+<pre><code>A    0.0
+B    0.0
+C    0.0
+dtype: float64</code></pre>
+</div>
+</div>
+<p>So we just need to:</p>
+<ol type="1">
+<li>measure the sum of products between each pair of variables</li>
+<li>divide those products by 3 (the sample size)</li>
+</ol>
+<p>Step (1) can be done with matrix multiplication like this:</p>
+<div class="cell" data-execution_count="5">
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>products <span class="op">=</span> np.matmul(X.transpose(), X)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>C_another_way <span class="op">=</span> products <span class="op">/</span> number_samples</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="cf">assert</span> (C_another_way<span class="op">==</span>C).<span class="bu">all</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Step one (matrix multiplication) works really fast in Numpy. We used it here to get the covariance matrix but I’ll show you how to also get a matrix of <em>percentage agreement</em>.</p>
+<p>Before we get to that let’s just make sure we know what’s going on first.</p>
+<p><span class="math inline">\(C[0,1]\)</span> is the covariance between the variables <code>A</code> and <code>B</code>.</p>
+<p><span class="math inline">\(products[0,1]\)</span> is the sum of products between <code>A</code> and <code>B</code>.</p>
+<p>So <span class="math inline">\(products[0,1] = (-3\times3) + (0\times0) + (3\times-3) = -18\)</span></p>
+<p><span class="math inline">\(products[1,2]\)</span> is the sum of products between <code>B</code> and <code>C</code>.</p>
+<p>And <span class="math inline">\(products[0,1] = (3\times0) + (0\times0) + (-3\times0) = 0\)</span></p>
+</section>
+<section id="covariance-matrices-with-missing-data" class="level2">
+<h2 class="anchored" data-anchor-id="covariance-matrices-with-missing-data">Covariance matrices with missing data</h2>
+</section>
+<section id="solution-using-masked-arrays" class="level2">
+<h2 class="anchored" data-anchor-id="solution-using-masked-arrays">Solution using masked arrays</h2>
+</section>
+<section id="generalizing-this-approach-to-measure-percentage-agreement" class="level2">
+<h2 class="anchored" data-anchor-id="generalizing-this-approach-to-measure-percentage-agreement">Generalizing this approach to measure percentage agreement</h2>
+<section id="end" class="level3">
+<h3 class="anchored" data-anchor-id="end">End</h3>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">

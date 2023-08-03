@@ -1,14 +1,11 @@
 {
-  "hash": "0295c046e5b74403877822aba1688ee8",
+  "hash": "18ed41d1470589579886060cc99dd800",
   "result": {
-    "markdown": "---\ntitle: \"Numpy masked arrays\"\nauthor: \"Carl Gaspar\"\ndate: \"2023-08-01\"\ncategories: [numpy, missing-data, matrices]\nimage: \"image.jpg\"\n---\n\n\nThis is a post with executable code.\n\n\n::: {.cell}\n\n```{.r .cell-code}\n1 + 1\n```\n\n::: {.cell-output .cell-output-stdout}\n```\n[1] 2\n```\n:::\n:::\n",
-    "supporting": [],
-    "filters": [
-      "rmarkdown/pagebreak.lua"
+    "markdown": "---\ntitle: \"Numpy masked arrays\"\nauthor: \"Carl Gaspar\"\ndate: \"2023-08-01\"\ncategories: [numpy, missing-data, matrices]\nimage: \"image.jpg\"\n---\n\nThis is a post with executable python code.\n\n::: {.cell execution_count=1}\n``` {.python .cell-code}\nimport numpy as np\n\nM = np.arange(9).reshape((3,3))\nprint(M)\n```\n\n::: {.cell-output .cell-output-stdout}\n```\n[[0 1 2]\n [3 4 5]\n [6 7 8]]\n```\n:::\n:::\n\n\n",
+    "supporting": [
+      "index_files"
     ],
-    "includes": {},
-    "engineDependencies": {},
-    "preserve": {},
-    "postProcess": true
+    "filters": [],
+    "includes": {}
   }
 }

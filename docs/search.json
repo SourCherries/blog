@@ -9,23 +9,51 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "PersonalBlog",
+    "title": "BarmyBlog",
     "section": "",
-    "text": "Post With Code\n\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\n\n\nAug 1, 2023\n\n\nHarlow Malloc\n\n\n\n\n\n\n  \n\n\n\n\nNumpy masked arrays\n\n\n\n\n\n\n\nnumpy\n\n\nmissing-data\n\n\nmatrices\n\n\n\n\n\n\n\n\n\n\n\nAug 1, 2023\n\n\nCarl Gaspar\n\n\n\n\n\n\n  \n\n\n\n\nWelcome To My Blog\n\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\n\n\nJul 29, 2023\n\n\nTristan O’Malley\n\n\n\n\n\n\nNo matching items"
+    "text": "Why masked arrays are useful for data science\n\n\n\n\n\n\n\nnumpy\n\n\nmissing data\n\n\npairwise comparisons\n\n\n\n\n\n\n\n\n\n\n\nAug 1, 2023\n\n\nCarl Gaspar\n\n\n\n\n\n\n  \n\n\n\n\nPost With Code\n\n\n\n\n\n\n\nnews\n\n\ncode\n\n\nanalysis\n\n\n\n\n\n\n\n\n\n\n\nAug 1, 2023\n\n\nHarlow Malloc\n\n\n\n\n\n\n  \n\n\n\n\nWelcome To My Blog\n\n\n\n\n\n\n\nnews\n\n\n\n\n\n\n\n\n\n\n\nJul 29, 2023\n\n\nTristan O’Malley\n\n\n\n\n\n\nNo matching items"
+  },
+  {
+    "objectID": "posts/masked-arrays/index.html",
+    "href": "posts/masked-arrays/index.html",
+    "title": "Why masked arrays are useful for data science",
+    "section": "",
+    "text": "Ever wanted to know why Numpy masked arrays are useful? Ever needed to compare lots of variables and struggled with missing data?\nComputations that are core to data science can be accelerated with the use of matrix operations. But real-world data has missing values and these can make matrix computations useless. Does that mean one must resort to inefficient for-loops when missing data is present?\nNo. Using Numpy masked arrays one can still reap the benefits of matrix operations whilst making full use of one’s data.\nWhat kinds of things are we measuring here? We focus on pairwise comparisons among a large set of variables. The most familiar example is the covariance matrix but that is not all.\nThe approach described here generalizes to many cases where pairwise comparisons of some kind are to be calculated. I describe how to use masked arrays to calculate percentage agreement (and Cohen’s kappa coefficient). That is what I happened to be working on recently.\nSo we’ll start with covariance matrices. Then I’ll show you a trick to quickly get matrices of percentage agreement (and Cohen’s kappa coefficient) even with missing data."
+  },
+  {
+    "objectID": "posts/masked-arrays/index.html#covariance-matrices",
+    "href": "posts/masked-arrays/index.html#covariance-matrices",
+    "title": "Why masked arrays are useful for data science",
+    "section": "Covariance matrices",
+    "text": "Covariance matrices\nI will go over a simple example that will remind you what a covariance matrix is, and how it can be calculated using matrix multiplication.\nHere is some example data with 3 samples of 3 variables:\n\nimport numpy as np\nimport pandas as pd\n\nX = np.array([[-3, 3, 0],\n              [ 0, 0, 0],\n              [ 3,-3, 0]])\n\nnumber_samples, number_variables = X.shape\n\nWe will get the covariance matrix using both Numpy and Pandas because there are some important differences. So here’s the data in Pandas:\n\nX_ = pd.DataFrame(X, columns = [\"A\", \"B\", \"C\"], index = [\"sample \" + str(i) for i in range(1,4)])              \nprint(X_)\n\n          A  B  C\nsample 1 -3  3  0\nsample 2  0  0  0\nsample 3  3 -3  0\n\n\nThe covariance matrix is a matrix showing the covariance between each pair of variables.\n\n# Using Numpy\n#   rowvar is False so that columns are variables\n#   bias is True to simplify our examples\nC = np.cov(X, rowvar=False, bias=True)\n\n# Using Pandas\n#   ddof is 0 (same as bias is True above)\nC_ = X_.cov(ddof=0)\nprint(C_)\n\n     A    B    C\nA  6.0 -6.0  0.0\nB -6.0  6.0  0.0\nC  0.0  0.0  0.0\n\n\nAs you can see the covariance between variables A and B is \\(-6\\). The covariance between C and both A and B is \\(0\\).\nCovariance is the expected product between 2 variables that are first centered at 0. We estimate it with the mean product.\nOur variables are already centered at zero:\n\nC_.sum(axis=0)\n\nA    0.0\nB    0.0\nC    0.0\ndtype: float64\n\n\nSo we just need to:\n\nmeasure the sum of products between each pair of variables\ndivide those products by 3 (the sample size)\n\nStep (1) can be done with matrix multiplication like this:\n\nproducts = np.matmul(X.transpose(), X)\n\nC_another_way = products / number_samples\n\nassert (C_another_way==C).all()\n\nStep one (matrix multiplication) works really fast in Numpy. We used it here to get the covariance matrix but I’ll show you how to also get a matrix of percentage agreement.\nBefore we get to that let’s just make sure we know what’s going on first.\n\\(C[0,1]\\) is the covariance between the variables A and B.\n\\(products[0,1]\\) is the sum of products between A and B.\nSo \\(products[0,1] = (-3\\times3) + (0\\times0) + (3\\times-3) = -18\\)\n\\(products[1,2]\\) is the sum of products between B and C.\nAnd \\(products[0,1] = (3\\times0) + (0\\times0) + (-3\\times0) = 0\\)"
+  },
+  {
+    "objectID": "posts/masked-arrays/index.html#covariance-matrices-with-missing-data",
+    "href": "posts/masked-arrays/index.html#covariance-matrices-with-missing-data",
+    "title": "Why masked arrays are useful for data science",
+    "section": "Covariance matrices with missing data",
+    "text": "Covariance matrices with missing data"
+  },
+  {
+    "objectID": "posts/masked-arrays/index.html#solution-using-masked-arrays",
+    "href": "posts/masked-arrays/index.html#solution-using-masked-arrays",
+    "title": "Why masked arrays are useful for data science",
+    "section": "Solution using masked arrays",
+    "text": "Solution using masked arrays"
+  },
+  {
+    "objectID": "posts/masked-arrays/index.html#generalizing-this-approach-to-measure-percentage-agreement",
+    "href": "posts/masked-arrays/index.html#generalizing-this-approach-to-measure-percentage-agreement",
+    "title": "Why masked arrays are useful for data science",
+    "section": "Generalizing this approach to measure percentage agreement",
+    "text": "Generalizing this approach to measure percentage agreement\n\nEnd"
   },
   {
     "objectID": "posts/post-with-code/index.html",
     "href": "posts/post-with-code/index.html",
     "title": "Post With Code",
     "section": "",
-    "text": "This is a post with executable code.\n\n1 + 1\n\n[1] 2"
-  },
-  {
-    "objectID": "posts/test-post/index.html",
-    "href": "posts/test-post/index.html",
-    "title": "Numpy masked arrays",
-    "section": "",
-    "text": "This is a post with executable code.\n\n1 + 1\n\n[1] 2"
+    "text": "This is a post with executable R code.\n\n1 + 1\n\n[1] 2"
   },
   {
     "objectID": "posts/welcome/index.html",
