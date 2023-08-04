@@ -4,6 +4,38 @@ from time import perf_counter
 import pandas as pd
 
 
+# -------------------------------------------------------------------
+# To do
+# 1. Text. Shorten end of intro.
+# 2. Shorten prologue. sexier.
+# 3. Fix indices of last products equation. maybe set to 2 lines each.
+# 4. ***In explanation of Cov, maybe highlight COV table with bold and bold corresponding pair of vars in data
+
+# 0. (MAYBE INSERT) matrix ops are fast while loops are slow
+
+# 1. Missing values
+# - basic with single nan and explain carry-over
+# - case where listwise deletion is ok
+# - realistic data (listwise is highly inefficient)
+
+# - pandas does pairwise 
+#     - fast?? test now!!!
+
+# - timing of loops
+
+# 2. Masked arrays
+
+# 3. Percentage agreement (Cohen's kappa)
+#     Now that we know we can still use matrix multiplication in a way that accounts for missing values in an efficient pairwise fashion,
+#     what can we do? As long as we are doing the same calculation over and over for many pairs of variables, we might be able to speed things up with matrix multiplication.
+#     Even with realistic data. In other words, realistic data is no longer a limit to harnessing the power of matrix multiplications.
+
+#     In this example, we use a trick so we can use matrix multiplication to speed up 
+
+
+# -------------------------------------------------------------------
+# Constants
+
 # Missing value
 M = np.nan
 
@@ -68,8 +100,57 @@ def cov_loop_unbiased(X):
             C[v1, v2] = sum(products) / (len(products)-1)
     return(C)
 
-C_me = pd.DataFrame(cov_loop_unbiased(X))
-C_pd = pd.DataFrame(X).cov(ddof=1)
+C_loops = pd.DataFrame(cov_loop_unbiased(X))
+C_panda = pd.DataFrame(X).cov(ddof=1)
+assert np.allclose(C_loops, C_panda)
+
+
+Xm = ma.masked_invalid(X)
+C_masks = ma.cov(Xm, rowvar=False, bias=False, allow_masked=True).filled(np.nan)
+print(C_masks == C_loops)
+
+# C_masks[0,1]
+# C_loops.iat[0,1]
+
+if (C_masks[0,1] < C_loops.iat[0,1]):
+    print("\n\nC_masks[0,1] < C_loops.iat[0,1]\n\n")
+
+# C_loops.iat[0,1]*4  # sum is 33
+# 33/4 = 8.25  # loops and pandas
+# 33/d = 8.40
+# d = 33/8.40 = 3.9285714285714284
+# print(8.4 * np.arange(6))
+
+Xclean = X[[0, 2, 4, 5],0:2]  # pairwise deletion
+M = np.tile(Xclean.mean(0).reshape((1,2)), (4, 1))
+Xclean = Xclean - M
+assert C_loops.iat[0, 1] == Xclean.prod(1).sum()/(4-1)
+assert C_panda.iat[0, 1] == Xclean.prod(1).sum()/(4-1)
+
+# Let's try masked arrays but instead of COV use basic operations
+#
+# COLUMN WISE DELETION!!!!
+
+# DO NOT USE MASKED COV
+# MUST USE INDIVIDUAL OPS WHEN USING MASKED ARRAYS
+# SO TRY DOING THIS NEXT -- JUST LIKE WITH AGREEMAT!!!
+
+Mm = np.tile(Xm.mean(0).reshape((1,3)), (6,1))
+Xcenter = Xm - Mm  # seems correct
+S = ma.dot(Xcenter.transpose(), Xcenter)
+
+
+valid = np.ones_like(Xm)  # valid responses (n x k)
+valid[ma.getmaskarray(R)] = 0
+N = np.dot(valid.transpose(), valid)  # NO
+N[0,1] == 4
+# Xclean.prod(1).sum() / 2.95
+
+
+
+
+
+
 
 # Pandas cov() appears to be doing something different than simply
 #   excluding samples on a pairwise basis.
@@ -82,13 +163,13 @@ v2 = np.array([ 3, 3, 0, M, -3, -3])
 p = v1 * v2
 p = p[np.isnan(p)==False]
 c_pair = p.mean()
-assert c_pair == C_me.iat[0,1]
-if (c_pair != C_pd.iat[0,1]):
+assert c_pair == C_loops.iat[0,1]
+if (c_pair != C_panda.iat[0,1]):
     print("pandas.DataFrame.cov() does not exclude samples pairwise.")
 
 X_listwise_delete = X[range(0, 5, 2), ]
 C_listwise = np.cov(X_listwise_delete, rowvar=False, bias=True)
-if (C_listwise[0,1] != C_pd.iat[0,1]):
+if (C_listwise[0,1] != C_panda.iat[0,1]):
     print("pandas.DataFrame.cov() does not use listwise deletion.")
 
 pd.DataFrame(X).cov(ddof=1, min_periods=1, numeric_only=False).iat[0, 1]
@@ -142,12 +223,12 @@ C = np.cov(X, rowvar=False)
 toc = perf_counter()
 print(f"Numpy COV took {toc-tic:0.4f} seconds.")
 
-C_loop = np.zeros_like(C)
-C_loop = np.zeros((number_variables, number_variables))
+C_loops = np.zeros_like(C)
+C_loops = np.zeros((number_variables, number_variables))
 tic = perf_counter()
 for a in range(number_variables):
     for b in range(a+1, number_variables):
-        C_loop[a, b] = np.cov(X[:, [a, b]], rowvar=False)[0,1]
+        C_loops[a, b] = np.cov(X[:, [a, b]], rowvar=False)[0,1]
 toc = perf_counter()
 print(f"Looping through COV took {toc-tic:0.4f} seconds.")
 
