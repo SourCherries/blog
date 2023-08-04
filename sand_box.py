@@ -1,7 +1,8 @@
 import numpy as np
 import numpy.ma as ma
-from time import perf_counter
 import pandas as pd
+import math
+from time import perf_counter
 
 
 # -------------------------------------------------------------------
@@ -41,44 +42,26 @@ M = np.nan
 
 
 # -------------------------------------------------------------------
-# Helper function
-import math
-
-X = np.array([[-3, 3, 0],
-              [ M, 3, 0],
-              [ 0, 0, 0],
-              [ 0, M, 0],
-              [ 3,-3, 0],
-              [ 3,-3, M]])
-# np.cov(X[range(0, 5, 2), ], rowvar=False, bias=True)
-# x = X[:,0]
-# y = X[:,1]
-# p = [a*b for a, b in zip(x,y)]
-# c = sum([v for v in p if not math.isnan(v)])
-
-def cov_loop_unbiased_upper(X):
-    number_variables = X.shape[1]
-    C = np.zeros((number_variables, number_variables))
-    for v1 in range(number_variables):
-        for v2 in range(v1+1, number_variables):
-            x = X[:,v1]
-            y = X[:,v2]
-
-            # remove observations where missing for either x or y
-            products = [a*b for a, b in zip(x,y)]
-            nx = [xi for xi, pi in zip(x, products) if not math.isnan(pi)]
-            ny = [yi for yi, pi in zip(y, products) if not math.isnan(pi)]
-
-            # mean-centered variables
-            cx = [x-sum(nx)/len(nx) for x in nx]
-            cy = [y-sum(ny)/len(ny) for y in ny]
-
-            # main result
-            products = [a*b for a, b in zip(cx,cy)]
-            C[v1, v2] = sum(products) / (len(products)-1)
-    return(C)
+# Helper functions
 
 def cov_loop_unbiased(X):
+    """Covariance matrix using only base Python and for-loops.
+       Normalized by (N-1) where N is observations.
+       Pairwise deletion.
+
+       Variables centered on a pairwise basis.
+       
+    Parameters
+    ----------
+    X : array_like
+        An n by k array of n observations of k variables.
+       
+    Returns
+    -------
+    C : ndarray
+        A k x k covariance matrix. 
+        Covariance between X[:,i] and X[:,j] is C[i, j] or C[j, i].
+    """
     number_variables = X.shape[1]
     C = np.zeros((number_variables, number_variables))
     for v1 in range(number_variables):
@@ -100,125 +83,107 @@ def cov_loop_unbiased(X):
             C[v1, v2] = sum(products) / (len(products)-1)
     return(C)
 
-C_loops = pd.DataFrame(cov_loop_unbiased(X))
-C_panda = pd.DataFrame(X).cov(ddof=1)
-assert np.allclose(C_loops, C_panda)
+
+def cov_loop_unbiased_pre_center(X):
+    """Covariance matrix using only base Python and for-loops.
+       Normalized by (N-1) where N is observations.
+       Pairwise deletion.
+
+       Variables centered on a variable-by-variable basis.
+       
+    Parameters
+    ----------
+    X : array_like
+        An n by k array of n observations of k variables.
+       
+    Returns
+    -------
+    C : ndarray
+        A k x k covariance matrix. 
+        Covariance between X[:,i] and X[:,j] is C[i, j] or C[j, i].
+    """
+    number_samples, number_variables = X.shape
+    # mean-centered variables
+    col_means = []
+    for col in X.transpose():
+        values = [i for i in col if not math.isnan(i)]
+        col_means.append(sum(values) / len(values))
+    M = np.tile(np.array(col_means).reshape((1, number_variables)), (number_samples, 1))
+    CX = X - M
+    C = np.zeros((number_variables, number_variables))
+    for v1 in range(number_variables):
+        for v2 in range(number_variables):
+            x = CX[:,v1]
+            y = CX[:,v2]
+
+            # remove observations where missing for either x or y
+            products = [a*b for a, b in zip(x,y)]
+            nx = [xi for xi, pi in zip(x, products) if not math.isnan(pi)]
+            ny = [yi for yi, pi in zip(y, products) if not math.isnan(pi)]
+
+            # main result
+            products = [a*b for a, b in zip(nx, ny)]
+            C[v1, v2] = sum(products) / (len(products)-1)
+    return(C)
+
+def cov_pandas_unbiased(X):
+    return(pd.DataFrame(X).cov(ddof=1))
+
+def cov_masked_unbiased(X):
+    Xm = ma.masked_invalid(X)
+    C_masks = ma.cov(Xm, rowvar=False, bias=False, allow_masked=True)
+    return(C_masks.filled(np.nan))
 
 
-Xm = ma.masked_invalid(X)
-C_masks = ma.cov(Xm, rowvar=False, bias=False, allow_masked=True).filled(np.nan)
-print(C_masks == C_loops)
+# --------------------------------------------------------------
+# What are pandas and numpy.MaskedArray doing when they
+#   calculate covariance?
+X = np.array([[-3, 3, 0],
+              [ M, 3, 0],
+              [ 0, 0, 0],
+              [ 0, M, 0],
+              [ 3,-3, 0],
+              [ 3,-3, M]])
 
-# C_masks[0,1]
-# C_loops.iat[0,1]
+C_panda = cov_pandas_unbiased(X)
+C_loops = cov_loop_unbiased(X)
+if np.allclose(C_panda, C_loops):
+    print("pandas.DataFrame.cov() does pairwise centering and deletion.")
 
-if (C_masks[0,1] < C_loops.iat[0,1]):
-    print("\n\nC_masks[0,1] < C_loops.iat[0,1]\n\n")
-
-# C_loops.iat[0,1]*4  # sum is 33
-# 33/4 = 8.25  # loops and pandas
-# 33/d = 8.40
-# d = 33/8.40 = 3.9285714285714284
-# print(8.4 * np.arange(6))
-
-Xclean = X[[0, 2, 4, 5],0:2]  # pairwise deletion
-M = np.tile(Xclean.mean(0).reshape((1,2)), (4, 1))
-Xclean = Xclean - M
-assert C_loops.iat[0, 1] == Xclean.prod(1).sum()/(4-1)
-assert C_panda.iat[0, 1] == Xclean.prod(1).sum()/(4-1)
-
-# Let's try masked arrays but instead of COV use basic operations
-#
-# COLUMN WISE DELETION!!!!
-
-# DO NOT USE MASKED COV
-# MUST USE INDIVIDUAL OPS WHEN USING MASKED ARRAYS
-# SO TRY DOING THIS NEXT -- JUST LIKE WITH AGREEMAT!!!
-
-Mm = np.tile(Xm.mean(0).reshape((1,3)), (6,1))
-Xcenter = Xm - Mm  # seems correct
-S = ma.dot(Xcenter.transpose(), Xcenter)
-
-
-valid = np.ones_like(Xm)  # valid responses (n x k)
-valid[ma.getmaskarray(R)] = 0
-N = np.dot(valid.transpose(), valid)  # NO
-N[0,1] == 4
-# Xclean.prod(1).sum() / 2.95
-
-
-
-
-
-
-
-# Pandas cov() appears to be doing something different than simply
-#   excluding samples on a pairwise basis.
-#
-#   Perhaps it is doing listwise deletion?
-
-
-v1 = np.array([-3, M, 0, 0,  3,  3])
-v2 = np.array([ 3, 3, 0, M, -3, -3])
-p = v1 * v2
-p = p[np.isnan(p)==False]
-c_pair = p.mean()
-assert c_pair == C_loops.iat[0,1]
-if (c_pair != C_panda.iat[0,1]):
-    print("pandas.DataFrame.cov() does not exclude samples pairwise.")
-
-X_listwise_delete = X[range(0, 5, 2), ]
-C_listwise = np.cov(X_listwise_delete, rowvar=False, bias=True)
-if (C_listwise[0,1] != C_panda.iat[0,1]):
-    print("pandas.DataFrame.cov() does not use listwise deletion.")
-
-pd.DataFrame(X).cov(ddof=1, min_periods=1, numeric_only=False).iat[0, 1]
-# -8.25
-
-pd.DataFrame(X).cov(ddof=0, min_periods=1, numeric_only=False).iat[0, 1]
-# -8.25
-
-np.cov(X_listwise_delete, rowvar=False)[0, 1]
-# -9
-
-np.cov(X_listwise_delete, rowvar=False, bias=True)[0, 1]
-# -6
-
-X_01 = X[:, 0:2]
-keep = np.isnan(X_01.prod(1)) == False
-X_pairwise_delete = X_01[keep, :]
-
-np.cov(X_pairwise_delete, rowvar=False)[0, 1]
-# -8.25
-
-np.cov(X_pairwise_delete, rowvar=False, bias=True)[0, 1]
-# -6.1875
-
-print("pandas.DataFrame.cov() same as pairwise numpy.cov(bias=False) or normalized by (N-1).")
-
-print("pandas.DataFrame.cov(ddof=0) does not seem to work. Forces ddof=1 and normalized by (N-1).")
-
-# Let's further explore
-#   np.cov(X_pairwise_delete, rowvar=False)[0, 1]
+C_masks = cov_masked_unbiased(X)
+C_loops_pre = cov_loop_unbiased_pre_center(X)
+if np.allclose(C_masks, C_loops_pre):
+    print("numpy.ma.cov() does variable-by-var#iable centering then pairwise deletion.")
 
 
 # -------------------------------------------------------------------
-# Four-sample examples
+# Now finally make function where I use masked arrays but
+#   coded so using basic matrix operations rather than COV().
 
-# Relation between matrix multiplication and covariance
-X = np.array([[-1,  1, -1],
-              [-1,  1,  1],
-              [ 1, -1, -1],
-              [ 1, -1,  1]])
+# this is going to be hard because I have a potentially different
+#   centering for each pair!!!
 
-np.cov(X, rowvar=False, bias=True)
+Xm = ma.masked_invalid(X)
+C_masks = ma.cov(Xm, rowvar=False, bias=False, allow_masked=True)
+# bad because mean-centered variable-by-variable
 
-# Efficient for large data
+# possible to mean-center pairwise? yes, but I will now have a 3D matrix ...
+#
+#   (number_variables x number_variables) x number_variables
+#   (        covariance matrix          ) x number_variables
+
+
+# BEFORE I SPEND TIME ON THIS CONFIRM THAT PANDAS FASTER THAN  cov_loop_unbiased()
+
+
+# -------------------------------------------------------------------
+# Timing
 number_variables = 100
 number_samples = 1000
 
-tic = perf_counter()
 X = np.random.randn(number_samples, number_variables)
+
+tic = perf_counter()
 C = np.cov(X, rowvar=False)
 toc = perf_counter()
 print(f"Numpy COV took {toc-tic:0.4f} seconds.")
