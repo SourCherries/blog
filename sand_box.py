@@ -3,6 +3,7 @@ import numpy.ma as ma
 import pandas as pd
 import math
 from time import perf_counter
+import timeit
 
 
 # -------------------------------------------------------------------
@@ -44,7 +45,7 @@ M = np.nan
 # -------------------------------------------------------------------
 # Helper functions
 
-def cov_loop_unbiased(X):
+def cov_loop(X, ddof=1):
     """Covariance matrix using only base Python and for-loops.
        Normalized by (N-1) where N is observations.
        Pairwise deletion.
@@ -80,11 +81,11 @@ def cov_loop_unbiased(X):
 
             # main result
             products = [a*b for a, b in zip(cx,cy)]
-            C[v1, v2] = sum(products) / (len(products)-1)
+            C[v1, v2] = sum(products) / (len(products)-ddof)
     return(C)
 
 
-def cov_loop_unbiased_pre_center(X):
+def cov_loop_pre_center(X, ddof=1):
     """Covariance matrix using only base Python and for-loops.
        Normalized by (N-1) where N is observations.
        Pairwise deletion.
@@ -123,17 +124,53 @@ def cov_loop_unbiased_pre_center(X):
 
             # main result
             products = [a*b for a, b in zip(nx, ny)]
-            C[v1, v2] = sum(products) / (len(products)-1)
+            C[v1, v2] = sum(products) / (len(products)-ddof)
     return(C)
 
 def cov_pandas_unbiased(X):
+    """ ddof has no effect """
     return(pd.DataFrame(X).cov(ddof=1))
 
-def cov_masked_unbiased(X):
+def cov_masked(X, bias=False):
     Xm = ma.masked_invalid(X)
-    C_masks = ma.cov(Xm, rowvar=False, bias=False, allow_masked=True)
+    C_masks = ma.cov(Xm, rowvar=False, bias=bias, allow_masked=True)
     return(C_masks.filled(np.nan))
 
+# def cov_masked_unbiased_pre_center(X):
+X = np.array([[1, 2, 3],
+              [M, 2, 0],
+              [2, 2, 2],
+              [0, M, 4],
+              [3, 2, 1],
+              [4, 2, M]])
+
+
+
+ddof = 0
+maskedX = ma.masked_invalid(X)
+Ones = ma.ones_like(maskedX)
+P = ma.dot(maskedX.transpose(), maskedX)        # sums of products
+SumsA = ma.dot(maskedX.transpose(), Ones)       # sums of 1st variable in pair
+SumsB = ma.dot(Ones.transpose(), maskedX)       # sums of 2nd variable in pair
+Counts = ma.dot(Ones.transpose(), Ones)         # counts valid pairs
+MSS = ma.multiply(P, 1/(Counts-ddof))           # mean sum of products
+MeansA = ma.multiply(SumsA, 1/(Counts-ddof))    # means of 1st variable
+MeansB = ma.multiply(SumsB, 1/(Counts-ddof))    # means of 2nd variable
+C_ = MSS - ma.multiply(MeansA, MeansB)           # covariance matrix
+
+C_loops_pre_ = cov_loop_pre_center(X, ddof=0)
+C_loops_ = cov_loop(X, ddof=0)
+
+if np.allclose(C_, C_loops_pre_)==False:
+    print("\nImplementation of rapid computation does NOT do variable-by-variable centering then pairwise deletion.\n\n")
+
+if np.allclose(C_, C_loops_)==False:
+    print("\nImplementation of rapid computation does NOT do pairwise centering and deletion.")
+    print("I was expecting it to do exactly this 😔.\n\n")
+else:
+    print("\nImplementation of rapid computation does do pairwise centering and deletion!")
+    print("Exactly what I was expecting! 🚀")
+    print("Only thing is I cannot get it do work with unbiased (ddof=1) ... \n\n")
 
 # --------------------------------------------------------------
 # What are pandas and numpy.MaskedArray doing when they
@@ -146,14 +183,14 @@ X = np.array([[-3, 3, 0],
               [ 3,-3, M]])
 
 C_panda = cov_pandas_unbiased(X)
-C_loops = cov_loop_unbiased(X)
+C_loops = cov_loop(X, ddof=1)
 if np.allclose(C_panda, C_loops):
     print("pandas.DataFrame.cov() does pairwise centering and deletion.")
 
-C_masks = cov_masked_unbiased(X)
-C_loops_pre = cov_loop_unbiased_pre_center(X)
+C_masks = cov_masked(X, bias=False)
+C_loops_pre = cov_loop_pre_center(X, ddof=1)
 if np.allclose(C_masks, C_loops_pre):
-    print("numpy.ma.cov() does variable-by-var#iable centering then pairwise deletion.")
+    print("numpy.ma.cov() does variable-by-variable centering then pairwise deletion.")
 
 
 # -------------------------------------------------------------------
