@@ -3,7 +3,7 @@ import numpy.ma as ma
 import pandas as pd
 import math
 from time import perf_counter
-import timeit
+# import timeit
 
 
 # -------------------------------------------------------------------
@@ -272,6 +272,78 @@ X = np.array([[-3, 3, 0],
               [ 3,-3, M]])
 np.cov(X, rowvar=False, bias=True)
 np.cov(X[range(0, 5, 2), ], rowvar=False, bias=True)
+
+
+# -------------------------------------------------------------------
+# Percentage agreement
+# -------------------------------------------------------------------
+
+# example data
+X = np.array([[0, 0, 0, 0, 1, 1, 1, 1],
+              [0, 0, 0, 0, 1, 1, 1, 1],
+              [0, 1, 0, 1, 0, 1, 0, 1],
+              [1, 1, 1, 1, 0, 0, 0, 0]]).transpose()
+
+col_labels = ['Item ' + str(i) for i in range(1,5)]
+row_labels = ['Person ' + str(i) for i in range(1,9)]
+print(pd.DataFrame(X, columns=col_labels, index=row_labels))
+
+# for-loop
+def pa_loop(X):
+    number_samples, number_variables = X.shape
+    percent_agreement = np.zeros((number_variables, number_variables))
+    for item_a in range(number_variables):
+        for item_b in range(item_a+1, number_variables):
+            percent_agreement[item_a, item_b] = (X[:, item_a]==X[:, item_b]).sum()
+    percent_agreement /= number_samples
+    return(percent_agreement)
+
+# for-loop (large sample)
+number_samples_large, number_samples_large = 1000000, 300
+X = np.random.choice([0, 1], size=(number_samples_large, number_samples_large), replace=True)
+tic = perf_counter()
+percent_agreement = pa_loop(X)
+toc = perf_counter()
+seconds_loop = toc-tic
+print(f"Computing all pairwise percentage agreements took {seconds_loop:0.4f} seconds.")
+
+# mat mul (explained)
+X = np.array([[0, 0, 0, 0, 1, 1, 1, 1],
+              [0, 0, 0, 0, 1, 1, 1, 1],
+              [0, 1, 0, 1, 0, 1, 0, 1],
+              [1, 1, 1, 1, 0, 0, 0, 0]]).transpose()
+
+number_samples, number_variables = X.shape
+yesYes = np.dot(X.transpose(), X)   # counts of yes-yes (k x k)
+F = np.abs(X-1)                     # [0,1] -> [1,0]
+noNo = np.dot(F.transpose(), F)     # counts of no-no   (k x k)
+S = yesYes + noNo                   # counts of agreements (k x k)
+A = S / number_samples              # percentage agreements (k x k)   
+print(pd.DataFrame(A, columns=col_labels, index=col_labels))
+
+# mat mul (timed)
+def pa_mat(X):
+    number_samples, number_variables = X.shape
+    yesYes = np.dot(X.transpose(), X)   # counts of yes-yes (k x k)
+    F = np.abs(X-1)                     # [0,1] -> [1,0]
+    noNo = np.dot(F.transpose(), F)     # counts of no-no   (k x k)
+    S = yesYes + noNo                   # counts of agreements (k x k)
+    A = S / number_samples              # percentage agreements (k x k)   
+    return(A)
+
+
+X = np.random.choice([0, 1], size=(number_samples_large, number_samples_large), replace=True)
+tic = perf_counter()
+percent_agreement = pa_mat(X)
+toc = perf_counter()
+seconds_mat = toc-tic
+print(f"Computing all pairwise percentage agreements took {seconds_mat:0.4f} seconds.")
+
+print(f"Loops takes {seconds_loop / seconds_mat:0.4f} times longer.")
+
+
+# kappa (no need to explain)
+
 
 
 # End
