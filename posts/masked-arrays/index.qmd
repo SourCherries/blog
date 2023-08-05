@@ -6,104 +6,83 @@ categories: [numpy, missing data, pairwise comparisons]
 image: "image.jpg"
 ---
 
-Ever wanted to know why Numpy masked arrays are useful? Ever needed to compare lots of variables and struggled with missing data?
+Ever needed to compare lots of variables and struggled with missing data?
 
-Computations that are core to data science can be accelerated with the use of matrix operations. But real-world data has missing values and these can make matrix computations useless. Does that mean one must resort to inefficient for-loops when missing data is present?
+A surprisingly wide range of measures that are core to data science can be accelerated with the use of matrix multiplication. You just need to get creative when reformulating your computation.
 
-No. Using Numpy masked arrays one can still reap the benefits of matrix operations whilst making full use of one's data.
+But real-world data has missing values and these can make matrix multiplication useless. Does that mean one must resort to inefficient for-loops to keep track of missing values?
 
-What kinds of things are we measuring here? We focus on pairwise comparisons among a large set of variables. The most familiar example is the **covariance matrix** but that is not all. 
+No. Using Numpy masked arrays one can still reap the benefits of matrix multiplication whilst making full use of one's data.
 
-The approach described here generalizes to many cases where pairwise comparisons of some kind are to be calculated. I describe how to use masked arrays to calculate **percentage agreement** (and **Cohen's kappa coefficient**). That is what I happened to be working on recently.
+In this post I cover:
 
-So we'll start with covariance matrices. Then I'll show you a trick to quickly get matrices of percentage agreement (and **Cohen's kappa coefficient**) even with missing data.
+1.  What matrix multiplication (**MM**) is.
+2.  How we can use **MM** to efficiently measure **percentage agreement**.
+3.  How we can then measure **Cohen's kappa coefficient**.
+4.  Why missing data are a problem for **MM**.
+5.  Show that Numpy masked arrays solves this problem.
 
-## Covariance matrices
+The **covariance matrix** is another measure we can efficiently compute using **MM** and masked arrays. I am leaving that for another post where I also describe existing solutions.
 
-I will go over a simple example that will remind you what a covariance matrix is, and how it can be calculated using matrix multiplication.
+In constrast, the solution I describe here for efficient computation of **percentage agreement** (**Cohen's kappa coefficient**) is not something in any major Python package.
 
-Here is some example data with 3 samples of 3 variables:
+But before we get to that, let's talk about **matrix multiplication** (\*\*MM\*).
+
+## Sums of products. Lots of them, fast
+
+As implemented in most popular packages like Python's Numpy, **MM** let's you rapidly calculate sums-of-products for many pairs of variables. So let's start with sums-of-products.
+
+Here is a single variable and it's sum-of-products:
 
 ```{python}
 import numpy as np
-import pandas as pd
-
-X = np.array([[-3, 3, 0],
-              [ 0, 0, 0],
-              [ 3,-3, 0]])
-
-number_samples, number_variables = X.shape
+x = np.array([1, 2, 3])
+sum_of_products = (x**2).sum()
+print(sum_of_products)
 ```
-
-We will get the covariance matrix using both Numpy and Pandas because there are some important differences. So here's the data in Pandas:
+Now we consider another variable `y` and calculate the sum-of-products between `x` and `y`:
 
 ```{python}
-X_ = pd.DataFrame(X, columns = ["A", "B", "C"], index = ["sample " + str(i) for i in range(1,4)])              
-print(X_)
+y = np.array([3, 2, 1])
+products = np.multiply(x, y)
+sum_of_products = products.sum()
+print(products)
+print(sum_of_products)
 ```
-
-The covariance matrix is a matrix showing the covariance between each pair of variables.
+Now we package our `x` and `y` as the column vectors of a single matrix:
+```{python}
+X = np.array([[1, 3],
+              [2, 2],
+              [3, 1]])
+number_observations, number_variables = X.shape
+print(f"{number_observations} observations (rows)")
+print(f"{number_variables} variables (columns)")
+```
+Why did with do this? If you matrix multiply `X` with itself you get something interesting:
 
 ```{python}
-# Using Numpy
-#   rowvar is False so that columns are variables
-#   bias is True to simplify our examples
-C = np.cov(X, rowvar=False, bias=True)
-
-# Using Pandas
-#   ddof is 0 (same as bias is True above)
-C_ = X_.cov(ddof=0)
-print(C_)
+S = np.dot(X.transpose(), X)
+print(S)
 ```
+`S[0,0]` is the sum-of-products of `x` with itself. `S[0,1]` is the sum-of-products of `x` with `y`. `S[1,0]` is also the sum-of-products of `x` with `y`. And `S[1,1]` is the sum-of-products of `y` with itself.
 
-As you can see the covariance between variables `A` and `B` is $-6$.
-The covariance between `C` and both `A` and `B` is $0$.
+In other words, matrix multiplication (**MM**) gives you the sum-of-products for every pairwise comparison.
 
-Covariance is the expected product between 2 variables that are first centered at 0. We estimate it with the mean product. 
+And as mentioned earlier, **MM** is computed very quickly using packages like Numpy.
 
-Our variables are already centered at zero:
+But why do we care about sums-of-products for every pairwise comparison? 
 
-```{python}
-C_.sum(axis=0)
-```
+So many interesting measures/statistics can be reformulated as an efficient sequence of **MM**. 
 
-So we just need to:
+So with just a little bit of cleverness you can turn your very inefficient for-loops into a very efficient sequence of matrix operations.
 
-1. measure the sum of products between each pair of variables
-2. divide those products by 3 (the sample size)
-
-Step (1) can be done with matrix multiplication like this:
-
-```{python}
-products = np.matmul(X.transpose(), X)
-
-C_another_way = products / number_samples
-
-assert (C_another_way==C).all()
-```
-
-Step one (matrix multiplication) works really fast in Numpy. We used it here to get the covariance matrix but I'll show you how to also get a matrix of *percentage agreement*.
-
-Before we get to that let's just make sure we know what's going on first.
-
-$C[0,1]$ is the covariance between the variables `A` and `B`.
-
-$products[0,1]$ is the sum of products between `A` and `B`.
-
-So $products[0,1] = (-3\times3) + (0\times0) + (3\times-3) = -18$
-
-$products[1,2]$ is the sum of products between `B` and `C`.
-
-And $products[0,1] = (3\times0) + (0\times0) + (-3\times0) = 0$
+## Efficient computation of percentage agreement
 
 
+## The curse of missing data
 
-## Covariance matrices with missing data
+## Masked arrays to the rescue
 
-
-## Solution using masked arrays
-
-## Generalizing this approach to measure percentage agreement
 
 
 ### End
