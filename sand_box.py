@@ -519,6 +519,15 @@ def pa_loop(X):
     percent_agreement /= number_samples
     return(percent_agreement)
 
+def pa_loop_t(X):
+    number_variables, number_samples = X.shape
+    percent_agreement = np.zeros((number_variables, number_variables))
+    for item_a in range(number_variables):
+        for item_b in range(item_a+1, number_variables):
+            percent_agreement[item_a, item_b] = (X[item_a, :]==X[item_b, :]).sum()
+    percent_agreement /= number_samples
+    return(percent_agreement)
+
 def pa_vect(X):
     number_samples, _ = X.shape
     yesYes = np.dot(X.transpose(), X)   # counts of yes-yes (k x k)
@@ -530,23 +539,37 @@ def pa_vect(X):
 
 number_samples_large = 1000
 number_variables_large = [10, 50, 100, 500, 1000]
-seconds = np.zeros((len(number_variables_large), 2))
+seconds = np.zeros((len(number_variables_large), 3))
 for i, nvl in enumerate(number_variables_large):
     print(str(i) + "\n")
     X = np.random.choice([0., 1.], size=(number_samples_large, nvl), replace=True)
-
     tic = perf_counter(); percent_agreement = pa_loop(X); toc = perf_counter()
     seconds_loop = toc-tic
-
+    XT = X.transpose()
+    tic = perf_counter(); percent_agreement = pa_loop_t(XT); toc = perf_counter()
+    seconds_loop_t = toc-tic
     tic = perf_counter(); percent_agreement = pa_vect(X); toc = perf_counter()
     seconds_vect = toc-tic
-
     seconds[i, 0] = seconds_loop
-    seconds[i, 1] = seconds_vect
+    seconds[i, 1] = seconds_loop_t
+    seconds[i, 2] = seconds_vect
 
 df = pd.DataFrame(seconds, 
-                  columns=['loop','vectorized'],
+                  columns=['loop','loop_t','vectorized'],
                   index=number_variables_large)
+
+# seconds = np.array([[3.31700000e-04, 2.42221000e-04, 1.59303570e-02],
+#        [9.02653600e-03, 9.12693800e-03, 5.07415000e-04],
+#        [4.34402050e-02, 4.33210080e-02, 1.39954200e-03],
+#        [8.41689109e-01, 8.08106641e-01, 6.60953810e-02],
+#        [3.24740389e+00, 3.25047152e+00, 1.21597452e-01]])
+
+#           loop    loop_t  vectorized
+# 10    0.000332  0.000242    0.015930
+# 50    0.009027  0.009127    0.000507
+# 100   0.043440  0.043321    0.001400
+# 500   0.841689  0.808107    0.066095
+# 1000  3.247404  3.250472    0.121597
 
 # df.plot(loglog=True, xlabel="Number of variables", ylabel="Seconds")
 # plt.show()
@@ -668,7 +691,15 @@ df_missing = pd.DataFrame(seconds_missing,
 
 
 
-
+# PRIORITY
+#
+# Check that my loopy functions adhere to this order
+#
+# Explicit loops in row-major order.
+# total = 0
+# for i in range(rows):
+#     for j in range(cols):
+#         total += A[i, j]
 
 # End
 # -------------------------------------------------------------------
