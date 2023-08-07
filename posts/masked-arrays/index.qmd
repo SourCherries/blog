@@ -1,9 +1,10 @@
 ---
-title: "Why masked arrays are useful for data science"
+title: "Why masked arrays are useful for data science. Part 1"
 author: "Carl Gaspar"
 date: "2023-08-01"
 categories: [numpy, missing data, pairwise comparisons]
 image: "image.jpg"
+number-sections: true
 ---
 
 Ever needed to compare lots of variables and struggled with missing data?
@@ -16,19 +17,21 @@ No. Using Numpy masked arrays one can still reap the benefits of matrix multipli
 
 In this post I cover:
 
-1.  What matrix multiplication (**MM**) is.
-2.  How we can use **MM** to efficiently measure **percentage agreement**.
-3.  How we can then measure **Cohen's kappa coefficient**.
-4.  Why missing data are a problem for **MM**.
-5.  Show that Numpy masked arrays solves this problem.
+1.  What matrix multiplication (**MM**) is (@sec-matmul)
+2.  Percentage agreement the slow way (@sec-agreement)
+2.  Percentage agreement (and Cohen's kappa) the fast way (@sec-vectorization)
+3.  Why missing data are a problem for **MM** (@sec-curse)
+4.  Show that Numpy masked arrays solves this problem (@sec-masked-arrays)
+5.  Give some pointers on optimization (@sec-details)
+6.  The takeaway. Go to @sec-takeaway if you're impatient!
 
-The **covariance matrix** is another measure we can efficiently compute using **MM** and masked arrays. I am leaving that for another post where I also describe existing solutions.
+The **covariance matrix** is another measure we can efficiently compute using **MM** and masked arrays. I am leaving that for another post where I also describe existing solutions (**coming soon**).
 
-In constrast, the solution I describe here for efficient computation of **percentage agreement** (**Cohen's kappa coefficient**) is not something in any major Python package.
+The solution I describe here for efficient computation of **percentage agreement** (and **Cohen's kappa coefficient**) is not something in any major Python package.
 
-But before we get to that, let's talk about **matrix multiplication** (\*\*MM\*).
+But before we get to that, let's talk about **matrix multiplication** (**MM**).
 
-## Sums of products. Lots of them, fast
+## Sums of products. Lots of them, fast {#sec-matmul}
 
 As implemented in most popular packages like Python's Numpy, **MM** let's you rapidly calculate sums-of-products for many pairs of variables. So let's start with sums-of-products.
 
@@ -40,6 +43,7 @@ x = np.array([1, 2, 3])
 sum_of_products = (x**2).sum()
 print(sum_of_products)
 ```
+
 Now we consider another variable `y` and calculate the sum-of-products between `x` and `y`:
 
 ```{python}
@@ -49,7 +53,9 @@ sum_of_products = products.sum()
 print(products)
 print(sum_of_products)
 ```
+
 Now we package our `x` and `y` as the column vectors of a single matrix:
+
 ```{python}
 X = np.array([[1, 3],
               [2, 2],
@@ -58,31 +64,193 @@ number_observations, number_variables = X.shape
 print(f"{number_observations} observations (rows)")
 print(f"{number_variables} variables (columns)")
 ```
+
 Why did with do this? If you matrix multiply `X` with itself you get something interesting:
 
 ```{python}
 S = np.dot(X.transpose(), X)
 print(S)
 ```
+
 `S[0,0]` is the sum-of-products of `x` with itself. `S[0,1]` is the sum-of-products of `x` with `y`. `S[1,0]` is also the sum-of-products of `x` with `y`. And `S[1,1]` is the sum-of-products of `y` with itself.
 
 In other words, matrix multiplication (**MM**) gives you the sum-of-products for every pairwise comparison.
 
 And as mentioned earlier, **MM** is computed very quickly using packages like Numpy.
 
-But why do we care about sums-of-products for every pairwise comparison? 
+But why do we care about sums-of-products for every pairwise comparison?
 
-So many interesting measures/statistics can be reformulated as an efficient sequence of **MM**. 
+So many interesting measures/statistics can be reformulated as an efficient sequence of **MM**.
 
 So with just a little bit of cleverness you can turn your very inefficient for-loops into a very efficient sequence of matrix operations.
 
-## Efficient computation of percentage agreement
+## Percentage agreement the slow way {#sec-agreement}
+
+Imagine that 8 people filled out a survey consisting of 4 yes/no items:
+
+```{python}
+import pandas as pd
+X = np.array([[0, 0, 0, 0, 1, 1, 1, 1],
+              [0, 0, 0, 0, 1, 1, 1, 1],
+              [0, 1, 0, 1, 0, 1, 0, 1],
+              [1, 1, 1, 1, 0, 0, 0, 0]]).transpose()
+
+col_labels = ['Item ' + str(i) for i in range(1,5)]
+row_labels = ['Person ' + str(i) for i in range(1,9)]
+print(pd.DataFrame(X, columns=col_labels, index=row_labels))
+```
+
+You want to know if there are associations among these items.
+
+A glance at this stylized data set suffices.
+
+Item 1 is perfectly positively associated with item 2 in this sample; 100 percent of the responses are in agreement.
+
+Item 1 is has no association with item 3 in this sample; guessing someone's response to item 3 based their response to 1 is no better than a coin flip (50 percent).
+
+Item 1 is perfectly negatively associated with item 4; 0 percent of the responses are in agreement.
+
+If you have a much larger data set, you might decide to use for-loops like this:
+
+***NOTE TO SELF***
+```{python}
+#def pa_loop(X):         # 🚀
+#def pa_loop_t(X):
+#def pa_vect(X):         # 🚀
+#def pa_loop_missing(X): # 🚀
+#def pa_vect_missing(X): # 🚀
+```
+
+```{python} 
+def pa_loop(X): # 🚀
+    number_samples, number_variables = X.shape
+    percent_agreement = np.zeros((number_variables, number_variables))
+    for item_a in range(number_variables):
+        for item_b in range(item_a+1, number_variables):
+            percent_agreement[item_a, item_b] = (X[:, item_a]==X[:, item_b]).sum()
+    percent_agreement /= number_samples
+    return(percent_agreement)
+```
+
+But this can be slow for large data sets:
+
+```{python}
+from time import perf_counter
+number_samples, number_variables = 1000, 1000
+X = np.random.choice([0., 1.], size=(number_samples, number_variables), replace=True)
+tic = perf_counter()
+percent_agreement = pa_loop(X)
+toc = perf_counter()
+print(f"Computing all pairwise percentage agreements took {toc-tic:0.4f} seconds.")
+```
+
+This may not seem so bad. But consider that
+
+1. Things will be much worse when missing data are considered (@sec-curse).
+2. Data exploration might mean iterating this code many times.
+3. **Percentage agreement** is simpler than some other measures/statistics.
+
+How can we use matrix multiplication to speed things up? We'll have to use some tricks but it's not that hard.
+
+## Percentage agreement the fast way {#sec-vectorization}
+
+Here is a simple case with yes and no responses for 2 items coded as 1s and 0s respectively:
+
+| item 1 | item 2 | agreement | yes-yes | no-no |
+|:------:|:------:|:---------:|:-------:|:-----:|
+|    0   |    0   |     1     |    0    |   1   |
+|    0   |    1   |     0     |    0    |   0   |
+|    1   |    0   |     0     |    0    |   0   |
+|    1   |    1   |     1     |    1    |   0   |
+
+What we want is a column like *agreement* above whose sum (`2`) gives us the number of agreements. We then divide 2 by 4 to get 50-percent agreement.
+
+Treating **item 1** as a row vector and **item 2** as a column vector, we can perform matrix multiplication to get the sum of **yes-yes** (`1`). As an intermediate step in matrix multiplication, our 2 vectors are multiplied value-by-value giving us the yes-yes column above. Summing is the final step of matrix multiplication (`1`). 
+
+Agreements can be either **yes-yes** or **no-no** so we still need to obtain that sum before we can measure number of agreements. That's easy. We simply flip the values in **item 1** and **item 2** from 0 to 1, and 1 to 0:
+
+$$
+new = \lvert old-1 \rvert
+$$
+
+Matrix multiplication of these complementary vectors for **item 1** and **item 2** (not shown here) gives us our sum of **no-no**, whose intermediate step is the **no-no** column above.
+
+The above example is for 2 items but the power of matrix multiplication is that we are multiplying **matrices** -- as many items as we want. And the result is a matrix of all pairwise comparisons. In other words, we can obtain a matrix of percentage agreement for all pairwise comparisons using a simple sequence of matrix-based operations, like this:
+
+```{python}
+def pa_vect(X):
+    number_samples, number_variables = X.shape # (n x k)
+    yesYes = np.dot(X.transpose(), X)          # counts of yes-yes (k x k)
+    np.abs(X-1, out=X)                         # [0,1] -> [1,0]
+    noNo = np.dot(X.transpose(), X)            # counts of no-no   (k x k)
+    S = yesYes + noNo                          # counts of agreements (k x k)
+    A = S / number_samples                     # percentage agreements (k x k)   
+    return(A)
+```
+
+How much faster is this compared to the loop-based computation?
+
+```{python}
+number_samples = 1000
+number_variables = [10, 50, 100, 500, 1000]
+seconds = np.zeros((len(number_variables), 2))
+for i, nvl in enumerate(number_variables):
+    X = np.random.choice([0., 1.], size=(number_samples, nvl), replace=True)
+    tic = perf_counter(); percent_agreement = pa_loop(X); toc = perf_counter()
+    seconds_loop = toc-tic
+    tic = perf_counter(); percent_agreement = pa_vect(X); toc = perf_counter()
+    seconds_vect = toc-tic
+    seconds[i, 0] = seconds_loop
+    seconds[i, 1] = seconds_vect
+    
+df = pd.DataFrame(seconds, 
+                  columns=['loop','matrix-based'],
+                  index=number_variables)
+df
+```
+
+Let's examine the speed up graphically:
+
+```{python}
+import matplotlib.pyplot as plt
+
+df.plot(loglog=True, xlabel="Number of variables", ylabel="Seconds")
+plt.show()
+```
+
+Matrix-based computation is definitely faster!
+
+How much faster exactly? 
+
+Dividing the time taken by loop-based computation by the time taken by matrix-based computation gives us a speed-up. The larger the number the stronger the advantage for matrix-based computation:
+
+```{python}
+speed_up = seconds[:,0] / seconds[:,1]
+plt.semilogx(number_variables, speed_up)
+plt.xlabel("Number of variables")
+plt.ylabel("Speed advantage")
+plt.title("Matrix-based operation beats loops by miles")
+plt.show()
+```
 
 
-## The curse of missing data
 
-## Masked arrays to the rescue
+## The curse of missing data {#sec-curse}
+
+## Masked arrays to the rescue {#sec-masked-arrays}
+
+## Nasty details for those interested {#sec-details}
+
+## Conclusion {#sec-takeaway}
+
+If you need to compute a measure/statistic for all pairwise comparisons among a large set of variables, then you can probably speed things up a lot with matrix multiplications. It may take some creativity, but this hopefully this blog post can provide some inspiration.
+
+If you also have missing data, then you can use matrix multiplications to obtain even more gains in efficiency! Simply use Numpy masked arrays.
+
+If you do decide to try out a similar solution for your measure/statistic, pay heed to @sec-details. And watch out for [Jax](https://jax.readthedocs.io/en/latest/index.html). While it currently does not support **masked arrays**, perhaps it or some external package using Jax will do so in the future. That could be very useful.
+
+The solution I present here for **percentage agreement** and **Cohen's kappa** is not currently implemented in any major Python package. I do not think that my solution would be useful for [scikit-learn](https://scikit-learn.org/stable/index.html), as Cohen's kappa is primarily used here for model comparison with ground-truth labels. Unless you wanted to obtain a detailed picture of categorization errors among hundreds of thousands of models ... However, it might have a place in some other package.
+
+Finally, watch out for my next post on how missing data are dealt with by current solutions that measure the **covariance matrix**, and why that matters.
 
 
-
-### End
