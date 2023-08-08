@@ -639,7 +639,9 @@ def pa_loop_missing(X):
                 products = [a*b for a, b in zip(x,y)]
                 nx = [xi for xi, pi in zip(x, products) if not math.isnan(pi)]
                 ny = [yi for yi, pi in zip(y, products) if not math.isnan(pi)]
-                percent_agreement[item_a, item_b] = sum([va==vb for va, vb in zip(nx, ny)]) / len(nx)
+                sumA = sum([va==vb for va, vb in zip(nx, ny)])
+                totA = len(nx)
+                percent_agreement[item_a, item_b] = [sumA / totA if totA > 0 else math.nan][0]
     return(percent_agreement)
 
 
@@ -654,15 +656,15 @@ def pa_loop_missing(X):
 #     return(A)
 
 def pa_vect_missing(X):
-    R = ma.masked_invalid(X)  # (n x k)
-    yesYes = ma.dot(R.transpose(), R)  # counts of yes-yes (k x k)
-    F = ma.abs(R-1)  # [0,1] -> [1,0]
-    noNo = ma.dot(F.transpose(), F)  # counts of no-no   (k x k)
-    S = yesYes + noNo  # counts of agreements (k x k)
-    valid = np.ones_like(R)  # valid responses (n x k)
+    R = ma.masked_invalid(X)                # (n x k)
+    yesYes = ma.dot(R.transpose(), R)       # counts of yes-yes (k x k)
+    F = ma.abs(R-1)                         # [0,1] -> [1,0]
+    noNo = ma.dot(F.transpose(), F)         # counts of no-no   (k x k)
+    S = yesYes + noNo                       # counts of agreements (k x k)
+    valid = np.ones_like(R)                 # valid responses (n x k)
     valid[ma.getmaskarray(R)] = 0
-    N = np.dot(valid.transpose(), valid)
-    A = ma.multiply(S, N**-1)
+    N = np.dot(valid.transpose(), valid)    # valid count (k x k)
+    A = ma.multiply(S, N**-1)               # percentage agreement (k x k)
     return(A)
 
 

@@ -212,10 +212,11 @@ code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warni
 
 
 
-<p>Ever needed to compare lots of variables and struggled with missing data?</p>
+<p>Ever needed to compare lots of variables and missing data made things super slow?</p>
 <p>A surprisingly wide range of measures that are core to data science can be accelerated with the use of matrix multiplication. You just need to get creative when reformulating your computation.</p>
 <p>But real-world data has missing values and these can make matrix multiplication useless. Does that mean one must resort to inefficient for-loops to keep track of missing values?</p>
 <p>No.&nbsp;Using Numpy masked arrays one can still reap the benefits of matrix multiplication whilst making full use of one’s data.</p>
+<p>Here I demonstrate the use of numpy masked arrays for the efficient calculation of <strong>percentage agreement</strong> among many binary variables.</p>
 <p>In this post I cover:</p>
 <ol type="1">
 <li>What matrix multiplication (<strong>MM</strong>) is (<a href="#sec-matmul">Section&nbsp;1</a>)</li>
@@ -314,35 +315,27 @@ Person 8       1       1       1       0</code></pre>
 <p>Item 1 is has no association with item 3 in this sample; guessing someone’s response to item 3 based their response to 1 is no better than a coin flip (50 percent).</p>
 <p>Item 1 is perfectly negatively associated with item 4; 0 percent of the responses are in agreement.</p>
 <p>If you have a much larger data set, you might decide to use for-loops like this:</p>
-<p><strong><em>NOTE TO SELF</em></strong></p>
 <div class="cell" data-execution_count="6">
-<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#def pa_loop(X):         # 🚀</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#def pa_loop_t(X):</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#def pa_vect(X):         # 🚀</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#def pa_loop_missing(X): # 🚀</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#def pa_vect_missing(X): # 🚀</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div class="cell" data-execution_count="7">
-<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pa_loop(X): <span class="co"># 🚀</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    number_samples, number_variables <span class="op">=</span> X.shape</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    percent_agreement <span class="op">=</span> np.zeros((number_variables, number_variables))</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> item_a <span class="kw">in</span> <span class="bu">range</span>(number_variables):</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> item_b <span class="kw">in</span> <span class="bu">range</span>(item_a<span class="op">+</span><span class="dv">1</span>, number_variables):</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>            percent_agreement[item_a, item_b] <span class="op">=</span> (X[:, item_a]<span class="op">==</span>X[:, item_b]).<span class="bu">sum</span>()</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    percent_agreement <span class="op">/=</span> number_samples</span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(percent_agreement)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pa_loop(X):</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    number_samples, number_variables <span class="op">=</span> X.shape</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    percent_agreement <span class="op">=</span> np.zeros((number_variables, number_variables))</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> item_a <span class="kw">in</span> <span class="bu">range</span>(number_variables):</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> item_b <span class="kw">in</span> <span class="bu">range</span>(item_a<span class="op">+</span><span class="dv">1</span>, number_variables):</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>            percent_agreement[item_a, item_b] <span class="op">=</span> (X[:, item_a]<span class="op">==</span>X[:, item_b]).<span class="bu">sum</span>()</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    percent_agreement <span class="op">/=</span> number_samples</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(percent_agreement)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>But this can be slow for large data sets:</p>
-<div class="cell" data-execution_count="8">
-<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> time <span class="im">import</span> perf_counter</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>number_samples, number_variables <span class="op">=</span> <span class="dv">1000</span>, <span class="dv">1000</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.choice([<span class="fl">0.</span>, <span class="fl">1.</span>], size<span class="op">=</span>(number_samples, number_variables), replace<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>tic <span class="op">=</span> perf_counter()</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>percent_agreement <span class="op">=</span> pa_loop(X)</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>toc <span class="op">=</span> perf_counter()</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Computing all pairwise percentage agreements took </span><span class="sc">{</span>toc<span class="op">-</span>tic<span class="sc">:0.4f}</span><span class="ss"> seconds."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="7">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> time <span class="im">import</span> perf_counter</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>number_samples, number_variables <span class="op">=</span> <span class="dv">1000</span>, <span class="dv">1000</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.random.choice([<span class="fl">0.</span>, <span class="fl">1.</span>], size<span class="op">=</span>(number_samples, number_variables), replace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>tic <span class="op">=</span> perf_counter()</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>percent_agreement <span class="op">=</span> pa_loop(X)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>toc <span class="op">=</span> perf_counter()</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Computing all pairwise percentage agreements took </span><span class="sc">{</span>toc<span class="op">-</span>tic<span class="sc">:0.4f}</span><span class="ss"> seconds."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Computing all pairwise percentage agreements took 3.2916 seconds.</code></pre>
+<pre><code>Computing all pairwise percentage agreements took 4.4096 seconds.</code></pre>
 </div>
 </div>
 <p>This may not seem so bad. But consider that</p>
@@ -405,35 +398,35 @@ new = \lvert old-1 \rvert
 \]</span></p>
 <p>Matrix multiplication of these complementary vectors for <strong>item 1</strong> and <strong>item 2</strong> (not shown here) gives us our sum of <strong>no-no</strong>, whose intermediate step is the <strong>no-no</strong> column above.</p>
 <p>The above example is for 2 items but the power of matrix multiplication is that we are multiplying <strong>matrices</strong> – as many items as we want. And the result is a matrix of all pairwise comparisons. In other words, we can obtain a matrix of percentage agreement for all pairwise comparisons using a simple sequence of matrix-based operations, like this:</p>
-<div class="cell" data-execution_count="9">
-<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pa_vect(X):</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    number_samples, number_variables <span class="op">=</span> X.shape <span class="co"># (n x k)</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    yesYes <span class="op">=</span> np.dot(X.transpose(), X)          <span class="co"># counts of yes-yes (k x k)</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    np.<span class="bu">abs</span>(X<span class="op">-</span><span class="dv">1</span>, out<span class="op">=</span>X)                         <span class="co"># [0,1] -&gt; [1,0]</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    noNo <span class="op">=</span> np.dot(X.transpose(), X)            <span class="co"># counts of no-no   (k x k)</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    S <span class="op">=</span> yesYes <span class="op">+</span> noNo                          <span class="co"># counts of agreements (k x k)</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> S <span class="op">/</span> number_samples                     <span class="co"># percentage agreements (k x k)   </span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="8">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pa_vect(X):</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    number_samples, number_variables <span class="op">=</span> X.shape <span class="co"># (n x k)</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    yesYes <span class="op">=</span> np.dot(X.transpose(), X)          <span class="co"># counts of yes-yes (k x k)</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    np.<span class="bu">abs</span>(X<span class="op">-</span><span class="dv">1</span>, out<span class="op">=</span>X)                         <span class="co"># [0,1] -&gt; [1,0]</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    noNo <span class="op">=</span> np.dot(X.transpose(), X)            <span class="co"># counts of no-no   (k x k)</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    S <span class="op">=</span> yesYes <span class="op">+</span> noNo                          <span class="co"># counts of agreements (k x k)</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> S <span class="op">/</span> number_samples                     <span class="co"># percentage agreements (k x k)   </span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <p>How much faster is this compared to the loop-based computation?</p>
-<div class="cell" data-execution_count="10">
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>number_samples <span class="op">=</span> <span class="dv">1000</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>number_variables <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">500</span>, <span class="dv">1000</span>]</span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>seconds <span class="op">=</span> np.zeros((<span class="bu">len</span>(number_variables), <span class="dv">2</span>))</span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, nvl <span class="kw">in</span> <span class="bu">enumerate</span>(number_variables):</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> np.random.choice([<span class="fl">0.</span>, <span class="fl">1.</span>], size<span class="op">=</span>(number_samples, nvl), replace<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    tic <span class="op">=</span> perf_counter()<span class="op">;</span> percent_agreement <span class="op">=</span> pa_loop(X)<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    seconds_loop <span class="op">=</span> toc<span class="op">-</span>tic</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    tic <span class="op">=</span> perf_counter()<span class="op">;</span> percent_agreement <span class="op">=</span> pa_vect(X)<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    seconds_vect <span class="op">=</span> toc<span class="op">-</span>tic</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    seconds[i, <span class="dv">0</span>] <span class="op">=</span> seconds_loop</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    seconds[i, <span class="dv">1</span>] <span class="op">=</span> seconds_vect</span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame(seconds, </span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>                  columns<span class="op">=</span>[<span class="st">'loop'</span>,<span class="st">'matrix-based'</span>],</span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>                  index<span class="op">=</span>number_variables)</span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display" data-execution_count="43">
+<div class="cell" data-execution_count="9">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>number_samples <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>number_variables <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">500</span>, <span class="dv">1000</span>]</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>seconds <span class="op">=</span> np.zeros((<span class="bu">len</span>(number_variables), <span class="dv">2</span>))</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, nvl <span class="kw">in</span> <span class="bu">enumerate</span>(number_variables):</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> np.random.choice([<span class="fl">0.</span>, <span class="fl">1.</span>], size<span class="op">=</span>(number_samples, nvl), replace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    tic <span class="op">=</span> perf_counter()<span class="op">;</span> percent_agreement <span class="op">=</span> pa_loop(X)<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    seconds_loop <span class="op">=</span> toc<span class="op">-</span>tic</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    tic <span class="op">=</span> perf_counter()<span class="op">;</span> percent_agreement <span class="op">=</span> pa_vect(X)<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    seconds_vect <span class="op">=</span> toc<span class="op">-</span>tic</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    seconds[i, <span class="dv">0</span>] <span class="op">=</span> seconds_loop</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>    seconds[i, <span class="dv">1</span>] <span class="op">=</span> seconds_vect</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame(seconds, </span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>                  columns<span class="op">=</span>[<span class="st">'loop'</span>,<span class="st">'matrix-based'</span>],</span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>                  index<span class="op">=</span>number_variables)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>df</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="9">
 
 <div>
 
@@ -448,28 +441,28 @@ new = \lvert old-1 \rvert
   <tbody>
     <tr>
       <th>10</th>
-      <td>0.000851</td>
-      <td>0.003188</td>
+      <td>0.000955</td>
+      <td>0.026229</td>
     </tr>
     <tr>
       <th>50</th>
-      <td>0.012009</td>
-      <td>0.005438</td>
+      <td>0.015662</td>
+      <td>0.002517</td>
     </tr>
     <tr>
       <th>100</th>
-      <td>0.057433</td>
-      <td>0.003524</td>
+      <td>0.060738</td>
+      <td>0.001671</td>
     </tr>
     <tr>
       <th>500</th>
-      <td>0.845797</td>
-      <td>0.057247</td>
+      <td>1.158148</td>
+      <td>0.122394</td>
     </tr>
     <tr>
       <th>1000</th>
-      <td>3.122708</td>
-      <td>0.060030</td>
+      <td>4.396172</td>
+      <td>0.148437</td>
     </tr>
   </tbody>
 </table>
@@ -477,45 +470,355 @@ new = \lvert old-1 \rvert
 </div>
 </div>
 <p>Let’s examine the speed up graphically:</p>
-<div class="cell" data-execution_count="11">
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>df.plot(loglog<span class="op">=</span><span class="va">True</span>, xlabel<span class="op">=</span><span class="st">"Number of variables"</span>, ylabel<span class="op">=</span><span class="st">"Seconds"</span>)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="10">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>df.plot(loglog<span class="op">=</span><span class="va">True</span>, xlabel<span class="op">=</span><span class="st">"Number of variables"</span>, ylabel<span class="op">=</span><span class="st">"Seconds"</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="index_files/figure-html/cell-12-output-1.png" width="599" height="431"></p>
+<p><img src="index_files/figure-html/cell-11-output-1.png" width="599" height="431"></p>
 </div>
 </div>
 <p>Matrix-based computation is definitely faster!</p>
 <p>How much faster exactly?</p>
 <p>Dividing the time taken by loop-based computation by the time taken by matrix-based computation gives us a speed-up. The larger the number the stronger the advantage for matrix-based computation:</p>
-<div class="cell" data-execution_count="12">
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>speed_up <span class="op">=</span> seconds[:,<span class="dv">0</span>] <span class="op">/</span> seconds[:,<span class="dv">1</span>]</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>plt.semilogx(number_variables, speed_up)</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Number of variables"</span>)</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Speed advantage"</span>)</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Matrix-based operation beats loops by miles"</span>)</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="11">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>speed_up <span class="op">=</span> seconds[:,<span class="dv">0</span>] <span class="op">/</span> seconds[:,<span class="dv">1</span>]</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>plt.semilogx(number_variables, speed_up)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Number of variables"</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Speed advantage"</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Matrix-based operation beats loops by miles"</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-display">
-<p><img src="index_files/figure-html/cell-13-output-1.png" width="585" height="451"></p>
+<p><img src="index_files/figure-html/cell-12-output-1.png" width="585" height="451"></p>
 </div>
 </div>
 </section>
 <section id="sec-curse" class="level2" data-number="4">
 <h2 data-number="4" class="anchored" data-anchor-id="sec-curse"><span class="header-section-number">4</span> The curse of missing data</h2>
+<p>Numpy is efficient because its data structures (matrices, vectors) have homogeneous elements. Everything in a numpy matrix for example is <code>int32</code> or whatever data type you set it to be (e.g., <code>float64</code>).</p>
+<p>If you have an element that is undefined for some reason, like a missing value for example, then it is usually represented as <code>nan</code>. That stands for not-a-number and is common in programming languages. Note that <code>nan</code> is only defined for floating point data types.</p>
+<p>For convenience, let’s assign a variable to represent <code>np.nan</code> so we do not have to type <code>np.nan</code> all the time:</p>
+<div class="cell" data-execution_count="12">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>M <span class="op">=</span> np.nan</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now let’s see why missing values in Numpy (<code>nan</code>) can be a problem for our <strong>MM</strong> solutions.</p>
+<p>If we do any arithmetic that involves a <code>nan</code> we get a <code>nan</code> as a result:</p>
+<div class="cell" data-execution_count="13">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"10 + nan is </span><span class="sc">{</span><span class="dv">10</span> <span class="op">+</span> M<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"23 * nan is </span><span class="sc">{</span><span class="dv">23</span> <span class="op">*</span> M<span class="sc">}</span><span class="ss">"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>10 + nan is nan
+23 * nan is nan</code></pre>
+</div>
+</div>
+<p>So if we do matrix multiplication, we will get <code>nan</code> for every pair that has at least one <code>nan</code>:</p>
+<div class="cell" data-execution_count="14">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span> np.array([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>]).reshape((<span class="dv">4</span>,<span class="dv">1</span>))</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.array([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, M]).reshape((<span class="dv">4</span>,<span class="dv">1</span>))</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>mm <span class="op">=</span> np.dot(x.transpose(), y)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"matrix multiplication of </span><span class="sc">{</span>x<span class="sc">.</span>flatten()<span class="sc">}</span><span class="ss"> and </span><span class="sc">{</span>y<span class="sc">.</span>flatten()<span class="sc">}</span><span class="ss"> is </span><span class="sc">{</span>mm<span class="sc">}</span><span class="ss">."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>matrix multiplication of [1 2 3 4] and [ 1.  2.  3. nan] is [[nan]].</code></pre>
+</div>
+</div>
+<p>Now let’s see how we can deal with missing values in data sets.</p>
+<p>There are simple cases which are uncommon, and there are complex cases which are common.</p>
+<p>Here is an extremely simple case:</p>
+<div class="cell" data-execution_count="15">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>],</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, <span class="dv">0</span>, <span class="dv">1</span>, <span class="dv">1</span>],</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>, <span class="dv">0</span>],</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>],</span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>              [M, M, M, M]])</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>col_labels <span class="op">=</span> [<span class="st">'Item '</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,<span class="dv">5</span>)]</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a>row_labels <span class="op">=</span> [<span class="st">'Person '</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,<span class="dv">6</span>)]</span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pd.DataFrame(X, columns<span class="op">=</span>col_labels, index<span class="op">=</span>row_labels))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>          Item 1  Item 2  Item 3  Item 4
+Person 1     0.0     0.0     0.0     1.0
+Person 2     0.0     0.0     1.0     1.0
+Person 3     1.0     1.0     0.0     0.0
+Person 4     1.0     1.0     1.0     0.0
+Person 5     NaN     NaN     NaN     NaN</code></pre>
+</div>
+</div>
+<p>Here we can perform <a href="https://en.wikipedia.org/wiki/Listwise_deletion">listwise deletion</a>, with no loss of information:</p>
+<div class="cell" data-execution_count="16">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>X[:<span class="op">-</span><span class="dv">1</span>,:]</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="16">
+<pre><code>array([[0., 0., 0., 1.],
+       [0., 0., 1., 1.],
+       [1., 1., 0., 0.],
+       [1., 1., 1., 0.]])</code></pre>
+</div>
+</div>
+<p>But the missing values in real data will often be in different records for different variables. Here is an extreme case:</p>
+<div class="cell" data-execution_count="17">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, M, M],</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, <span class="dv">0</span>, M, M],</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, <span class="dv">1</span>, M, M],</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, <span class="dv">1</span>, M, M],</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, M, <span class="dv">0</span>, M],</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, M, <span class="dv">1</span>, M],</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, M, <span class="dv">0</span>, M],</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, M, <span class="dv">1</span>, M],</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, M, M, <span class="dv">1</span>],</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, M, M, <span class="dv">1</span>],</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, M, M, <span class="dv">0</span>],</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, M, M, <span class="dv">0</span>]])</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>If we do listwise deletion we end up with no data.</p>
+<p>What we want is <strong>pairwise deletion</strong> instead of listwise deletion. We want to only exclude samples on a pairwise basis in order to retain the most information.</p>
+<p>This is pretty straightforward with our loop-based code. We simply add list comprehensions inside the inner loop, which excludes samples whenever a value is missing for one of the pairs under consideration:</p>
+<div class="cell" data-execution_count="18">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pa_loop_missing(X):</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    _, number_variables <span class="op">=</span> X.shape</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    percent_agreement <span class="op">=</span> np.zeros((number_variables, number_variables))</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> item_a <span class="kw">in</span> <span class="bu">range</span>(number_variables):</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> item_b <span class="kw">in</span> <span class="bu">range</span>(item_a<span class="op">+</span><span class="dv">1</span>, number_variables):</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>                x <span class="op">=</span> X[:, item_a]</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>                y <span class="op">=</span> X[:, item_b]</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>                <span class="co"># remove observations where missing for either x or y</span></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>                products <span class="op">=</span> [a<span class="op">*</span>b <span class="cf">for</span> a, b <span class="kw">in</span> <span class="bu">zip</span>(x,y)]</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>                nx <span class="op">=</span> [xi <span class="cf">for</span> xi, pi <span class="kw">in</span> <span class="bu">zip</span>(x, products) <span class="cf">if</span> <span class="kw">not</span> math.isnan(pi)]</span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a>                ny <span class="op">=</span> [yi <span class="cf">for</span> yi, pi <span class="kw">in</span> <span class="bu">zip</span>(y, products) <span class="cf">if</span> <span class="kw">not</span> math.isnan(pi)]</span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a>                sumA <span class="op">=</span> <span class="bu">sum</span>([va<span class="op">==</span>vb <span class="cf">for</span> va, vb <span class="kw">in</span> <span class="bu">zip</span>(nx, ny)])</span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>                totA <span class="op">=</span> <span class="bu">len</span>(nx)</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>                percent_agreement[item_a, item_b] <span class="op">=</span> [sumA <span class="op">/</span> totA <span class="cf">if</span> totA <span class="op">&gt;</span> <span class="dv">0</span> <span class="cf">else</span> math.nan][<span class="dv">0</span>]</span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(percent_agreement)</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>pa_loop_missing(X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="18">
+<pre><code>array([[0. , 1. , 0.5, 0. ],
+       [0. , 0. , nan, nan],
+       [0. , 0. , 0. , nan],
+       [0. , 0. , 0. , 0. ]])</code></pre>
+</div>
+</div>
+<p>This works but as we will see in <a href="#sec-masked-arrays">Section&nbsp;5</a>, this solution is very slow. That is not a surprise since we now effectively have 3 nested loops.</p>
+<p>And if we try out matrix-based solution we end up no result except for the agreement of the first item with itself:</p>
+<div class="cell" data-execution_count="19">
+<div class="sourceCode cell-code" id="cb30"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>pa_vect(X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display" data-execution_count="19">
+<pre><code>array([[ 1., nan, nan, nan],
+       [nan, nan, nan, nan],
+       [nan, nan, nan, nan],
+       [nan, nan, nan, nan]])</code></pre>
+</div>
+</div>
+<p>Of course. We already knew this.</p>
+<p>In fact, it seems impossible to avoid for-loops if one wants to perform pairwise deletion.</p>
+<p>Or is it?</p>
 </section>
 <section id="sec-masked-arrays" class="level2" data-number="5">
 <h2 data-number="5" class="anchored" data-anchor-id="sec-masked-arrays"><span class="header-section-number">5</span> Masked arrays to the rescue</h2>
+<p>As it turns out, <a href="https://numpy.org/doc/stable/reference/maskedarray.html">numpy masked arrays</a> effectively performs pairwise deletion when a matrix multiplication is performed!</p>
+<p>Despite being of very valuable, this feature of masked arrays is not something that appears to be commonly appreciated in discussions of what makes masked arrays useful.</p>
+<p>For example, see the top-rated responses to this query on <a href="https://stackoverflow.com/questions/55987642/why-are-numpy-masked-arrays-useful">Stack Overflow</a> on <em>Why are Numpy masked arrays useful?</em>. As with these responses, practical examples from research or data science are typically not given.</p>
+<p>So let’s make sure pairwise deletion is indeed performed using a matrix multiplication of masked arrays. I was not sure myself and had to check using numerous examples. Here is a really simple example I showed you before:</p>
+<div class="cell" data-execution_count="20">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> np.array([[<span class="dv">0</span>, <span class="dv">0</span>, M, M],</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, <span class="dv">0</span>, M, M],</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, <span class="dv">1</span>, M, M],</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, <span class="dv">1</span>, M, M],</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, M, <span class="dv">0</span>, M],</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, M, <span class="dv">1</span>, M],</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, M, <span class="dv">0</span>, M],</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, M, <span class="dv">1</span>, M],</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, M, M, <span class="dv">1</span>],</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">0</span>, M, M, <span class="dv">1</span>],</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, M, M, <span class="dv">0</span>],</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>              [<span class="dv">1</span>, M, M, <span class="dv">0</span>]])</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>col_labels <span class="op">=</span> [<span class="st">'Item '</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,X.shape[<span class="dv">1</span>]<span class="op">+</span><span class="dv">1</span>)]</span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>row_labels <span class="op">=</span> [<span class="st">'Person '</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,X.shape[<span class="dv">0</span>]<span class="op">+</span><span class="dv">1</span>)]</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pd.DataFrame(X, columns<span class="op">=</span>col_labels, index<span class="op">=</span>row_labels))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>           Item 1  Item 2  Item 3  Item 4
+Person 1      0.0     0.0     NaN     NaN
+Person 2      0.0     0.0     NaN     NaN
+Person 3      1.0     1.0     NaN     NaN
+Person 4      1.0     1.0     NaN     NaN
+Person 5      0.0     NaN     0.0     NaN
+Person 6      0.0     NaN     1.0     NaN
+Person 7      1.0     NaN     0.0     NaN
+Person 8      1.0     NaN     1.0     NaN
+Person 9      0.0     NaN     NaN     1.0
+Person 10     0.0     NaN     NaN     1.0
+Person 11     1.0     NaN     NaN     0.0
+Person 12     1.0     NaN     NaN     0.0</code></pre>
+</div>
+</div>
+<p>Clearly the sum of products between <strong>item</strong> 1 and itself should be <code>6</code>, between <strong>item</strong> 1 and 2 should be <code>2</code>, between <strong>item</strong> 1 and 3 should be <code>1</code>, and between <strong>item</strong> 1 and 4 should be <code>0</code>. You easily calculate the rest yourself.</p>
+<p>Let’s see if matrix multiplication with masked arrays is consistent with pairwise deletion.</p>
+<p>The first step is to import the masked array module, and convert <code>X</code> to a masked array such that <code>nan</code> values are identified as <em>masked</em>:</p>
+<div class="cell" data-execution_count="21">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy.ma <span class="im">as</span> ma</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>R <span class="op">=</span> ma.masked_invalid(X)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Now the rest is the easy. The masked array module contains almost all of the same functionality as numpy itself. So for example we can write <code>ma.dot()</code> instead of <code>np.dot()</code>:</p>
+<div class="cell" data-execution_count="22">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>yesYes <span class="op">=</span> ma.dot(R.transpose(), R)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pd.DataFrame(yesYes, columns<span class="op">=</span>col_labels, index<span class="op">=</span>col_labels))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>        Item 1  Item 2  Item 3  Item 4
+Item 1     6.0     2.0     1.0     0.0
+Item 2     2.0     2.0     NaN     NaN
+Item 3     1.0     NaN     2.0     NaN
+Item 4     0.0     NaN     NaN     2.0</code></pre>
+</div>
+</div>
+<p>Fantastic! Pairwise deletion without for loops!</p>
+<p>But is this fast? Can we still get those juicy speed gains using matrix multiplication on masked arrays?</p>
+<p>Let’s find out. First let’s re-code our function for matrix-computation of percentage agreement to perform all operations on a masked-array version of the data:</p>
+<div class="cell" data-execution_count="23">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pa_vect_missing(X):</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    R <span class="op">=</span> ma.masked_invalid(X)                <span class="co"># (n x k)</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    yesYes <span class="op">=</span> ma.dot(R.transpose(), R)       <span class="co"># counts of yes-yes (k x k)</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>    F <span class="op">=</span> ma.<span class="bu">abs</span>(R<span class="op">-</span><span class="dv">1</span>)                         <span class="co"># [0,1] -&gt; [1,0]</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>    noNo <span class="op">=</span> ma.dot(F.transpose(), F)         <span class="co"># counts of no-no   (k x k)</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>    S <span class="op">=</span> yesYes <span class="op">+</span> noNo                       <span class="co"># counts of agreements (k x k)</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>    valid <span class="op">=</span> np.ones_like(R)                 <span class="co"># valid responses (n x k)</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>    valid[ma.getmaskarray(R)] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>    N <span class="op">=</span> np.dot(valid.transpose(), valid)    <span class="co"># valid count (k x k)</span></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>    A <span class="op">=</span> ma.multiply(S, N<span class="op">**-</span><span class="dv">1</span>)               <span class="co"># percentage agreement (k x k)</span></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span>(A)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>And now let’s compare our new loop- and matrix-based functions across a range of data sizes. Here I simulate binary responses with 20-percent missing data on average, randomly dispersed across sample and variable:</p>
+<div class="cell" data-execution_count="24">
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>responses, probs <span class="op">=</span> [<span class="fl">0.</span>, <span class="fl">1.</span>, M], [<span class="fl">.4</span>, <span class="fl">.4</span>, <span class="fl">.2</span>]</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>number_samples_large <span class="op">=</span> <span class="dv">1000</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>number_variables_large <span class="op">=</span> [<span class="dv">10</span>, <span class="dv">50</span>, <span class="dv">100</span>, <span class="dv">500</span>, <span class="dv">1000</span>]</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>seconds_missing <span class="op">=</span> np.zeros((<span class="bu">len</span>(number_variables_large), <span class="dv">2</span>))</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i, nvl <span class="kw">in</span> <span class="bu">enumerate</span>(number_variables_large):</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="bu">str</span>(i) <span class="op">+</span> <span class="st">"</span><span class="ch">\n</span><span class="st">"</span>)</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>    X <span class="op">=</span> np.random.choice(responses, </span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>                        size<span class="op">=</span>(number_samples_large, nvl), </span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>                        replace<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a>                        p<span class="op">=</span>probs)</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>    tic <span class="op">=</span> perf_counter()<span class="op">;</span> percent_agreement <span class="op">=</span> pa_loop_missing(X)<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    seconds_loop <span class="op">=</span> toc<span class="op">-</span>tic</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>    tic <span class="op">=</span> perf_counter()<span class="op">;</span> percent_agreement <span class="op">=</span> pa_vect_missing(X)<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>    seconds_vect <span class="op">=</span> toc<span class="op">-</span>tic</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>    seconds_missing[i, <span class="dv">0</span>] <span class="op">=</span> seconds_loop</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>    seconds_missing[i, <span class="dv">1</span>] <span class="op">=</span> seconds_vect</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a>df_missing <span class="op">=</span> pd.DataFrame(seconds_missing, </span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a>                          columns<span class="op">=</span>[<span class="st">'loop'</span>,<span class="st">'vectorized'</span>],</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>                          index<span class="op">=</span>number_variables_large)</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>df.plot(loglog<span class="op">=</span><span class="va">True</span>, xlabel<span class="op">=</span><span class="st">"Number of variables"</span>, ylabel<span class="op">=</span><span class="st">"Seconds"</span>)</span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>0
+</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>1
+</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>2
+</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>3
+</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>4
+</code></pre>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-25-output-6.png" width="599" height="431"></p>
+</div>
+</div>
+<p>Wow, is that an almost 1000-fold speed advantage for matrix-based computation?</p>
+<p>Again let’s show ratios of time taken to see:</p>
+<div class="cell" data-execution_count="25">
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>speed_up <span class="op">=</span> seconds_missing[:,<span class="dv">0</span>] <span class="op">/</span> seconds_missing[:,<span class="dv">1</span>]</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>plt.semilogx(number_variables, speed_up)</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">"Number of variables"</span>)</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">"Speed advantage"</span>)</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">"Matrix-based operation beats loops up to 1000 fold"</span>)</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-26-output-1.png" width="602" height="451"></p>
+</div>
+</div>
+<p>Yes, indeed. An almost 1000-fold speed advantage!</p>
+<p>Obviously you’d want to run a speed test multiple times but I do not think minor changes in computer state or exact data would change all that much. Nonetheless, you may want to know about my set up. I ran this on an AMD Ryzen 7 5800H with 32GB ram.</p>
+<p>Oh yeah, I also mentioned something about <a href="https://en.wikipedia.org/wiki/Cohen's_kappa"><strong>Cohen’s kappa coefficient</strong></a>. This is something you may want to consider using if you want to take into the degree to which agreements can happen by chance. Cohen’s kappa is currently implemented in <a href="https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html#sklearn.metrics.cohen_kappa_score">scikit-learn</a> but only handles single pairs. If you wanted to measure kappa among a large number of variables using scikit-learn then you’d have to put their function into a nested loop.</p>
+<p>So I wrote a matrix-based version of cohen’s kappa that can handle missing values efficiently and I put it in this <a href="https://github.com/SourCherries/agreemat">GitHub repo</a>. It is basically like <code>pa_vect_missing()</code> but with some additional lines of code. So if you understood the discussion so far, then understanding my function for Cohen’s kappa should be straightforward.</p>
+<p>I do not think that my solution for Cohen’s kappa would be useful for <a href="https://scikit-learn.org/stable/index.html">scikit-learn</a>, as Cohen’s kappa is primarily used there for model comparison with ground-truth labels. Unless you wanted to obtain a detailed picture of categorization errors among hundreds of thousands of models … I used my code for simple data exploration.</p>
 </section>
 <section id="sec-details" class="level2" data-number="6">
 <h2 data-number="6" class="anchored" data-anchor-id="sec-details"><span class="header-section-number">6</span> Nasty details for those interested</h2>
+<p>If you want to implement your own solution, you may want to know about Numpy optimization if you’re not getting the gains you hoped for.</p>
+<p>I highly recommend the <a href="http://shihchinw.github.io/2019/03/performance-tips-of-numpy-ndarray.html">blog post by Shih-Chin on this topic</a>. It is a well written and overall excellent resource!</p>
+<p>Here I point out one little detail you might have missed in the above code:</p>
+<div class="cell" data-execution_count="26">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>Xa <span class="op">=</span> np.random.choice([<span class="fl">0.</span>, <span class="fl">1.</span>], size<span class="op">=</span>(<span class="dv">1000</span>, <span class="dv">1000</span>), replace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>Xb <span class="op">=</span> np.random.choice([<span class="dv">0</span>,  <span class="dv">1</span>],  size<span class="op">=</span>(<span class="dv">1000</span>, <span class="dv">1000</span>), replace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Xa has data type </span><span class="sc">{</span>Xa<span class="sc">.</span>dtype<span class="sc">}</span><span class="ss">."</span>)</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Xb has data type </span><span class="sc">{</span>Xb<span class="sc">.</span>dtype<span class="sc">}</span><span class="ss">."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Xa has data type float64.
+Xb has data type int64.</code></pre>
+</div>
+</div>
+<p>You might remember that the presence of missing values will automatically cast data type to <code>float</code>. So all the data in <a href="#sec-curse">Section&nbsp;4</a> were <code>float64</code>.</p>
+<p>When I wrote about computation without missing values (<a href="#sec-vectorization">Section&nbsp;3</a>), I was careful to keep this consistent and use floating value: like <code>Xa</code> in the above code and not like <code>Xb</code>! Why be so careful?</p>
+<p>As it turns out, this can have an effect on computational speed.</p>
+<div class="cell" data-execution_count="27">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>tic <span class="op">=</span> perf_counter()<span class="op">;</span> np.dot(Xa.transpose(), Xa)<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>secs_order_1 <span class="op">=</span> toc <span class="op">-</span> tic</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>tic <span class="op">=</span> perf_counter()<span class="op">;</span> np.dot(Xa, Xa.transpose())<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>secs_order_2 <span class="op">=</span> toc <span class="op">-</span> tic</span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"np.dot(Xa.transpose(), Xa) took </span><span class="sc">{</span>secs_order_1<span class="sc">}</span><span class="ss"> seconds."</span>)</span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"np.dot(Xa, Xa.transpose()) took </span><span class="sc">{</span>secs_order_2<span class="sc">}</span><span class="ss"> seconds."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>np.dot(Xa.transpose(), Xa) took 0.1135176779998801 seconds.
+np.dot(Xa, Xa.transpose()) took 0.05753454500063526 seconds.</code></pre>
+</div>
+</div>
+<p>If your data type is float, as it must be when we have missing data, then you will want to matrix multiply the transpose of X with X rather than the other way around. The former is faster.</p>
+<p>Obviously, the transpose of X came first in our calculations because we set the columns of our data to be the variables. That way we get a pairwise comparisons of variables instead of samples. But clearly, we could have set the rows of our data to be the variables, in which case X transpose should come second.</p>
+<p>Now what happens if our data type is <code>int64</code> instead of <code>float64</code>?</p>
+<div class="cell" data-execution_count="28">
+<div class="sourceCode cell-code" id="cb49"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>tic <span class="op">=</span> perf_counter()<span class="op">;</span> np.dot(Xb.transpose(), Xb)<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>secs_order_1 <span class="op">=</span> toc <span class="op">-</span> tic</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>tic <span class="op">=</span> perf_counter()<span class="op">;</span> np.dot(Xb, Xb.transpose())<span class="op">;</span> toc <span class="op">=</span> perf_counter()</span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>secs_order_2 <span class="op">=</span> toc <span class="op">-</span> tic</span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"np.dot(Xb.transpose(), Xb) took </span><span class="sc">{</span>secs_order_1<span class="sc">}</span><span class="ss"> seconds."</span>)</span>
+<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"np.dot(Xb, Xb.transpose()) took </span><span class="sc">{</span>secs_order_2<span class="sc">}</span><span class="ss"> seconds."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>np.dot(Xb.transpose(), Xb) took 2.4103485059995364 seconds.
+np.dot(Xb, Xb.transpose()) took 1.174356636000084 seconds.</code></pre>
+</div>
+</div>
+<p>Now things are much slower overall and we get the opposite pattern – putting X transpose to the right side of our matrix multiplication is faster!</p>
+<p>Why is this? That is not what this blog post is about. Take a deep dive into <a href="http://shihchinw.github.io/2019/03/performance-tips-of-numpy-ndarray.html">the blog post by Shih-Chin</a>.</p>
+<p>Finally, this discussion ignores statistical issues in inference when we are performing pairwise deletion. If you are simply exploring your data or trying out different machine learning methods, then that’s not such an issue. But keep in mind that the effect of pairwise deletion on inference are likely to be tricky.</p>
 </section>
 <section id="sec-takeaway" class="level2" data-number="7">
 <h2 data-number="7" class="anchored" data-anchor-id="sec-takeaway"><span class="header-section-number">7</span> Conclusion</h2>
-<p>If you need to compute a measure/statistic for all pairwise comparisons among a large set of variables, then you can probably speed things up a lot with matrix multiplications. It may take some creativity, but this hopefully this blog post can provide some inspiration.</p>
-<p>If you also have missing data, then you can use matrix multiplications to obtain even more gains in efficiency! Simply use Numpy masked arrays.</p>
-<p>If you do decide to try out a similar solution for your measure/statistic, pay heed to <a href="#sec-details">Section&nbsp;6</a>. And watch out for <a href="https://jax.readthedocs.io/en/latest/index.html">Jax</a>. While it currently does not support <strong>masked arrays</strong>, perhaps it or some external package using Jax will do so in the future. That could be very useful.</p>
-<p>The solution I present here for <strong>percentage agreement</strong> and <strong>Cohen’s kappa</strong> is not currently implemented in any major Python package. I do not think that my solution would be useful for <a href="https://scikit-learn.org/stable/index.html">scikit-learn</a>, as Cohen’s kappa is primarily used here for model comparison with ground-truth labels. Unless you wanted to obtain a detailed picture of categorization errors among hundreds of thousands of models … However, it might have a place in some other package.</p>
+<p>If you need to compute a measure/statistic for all pairwise comparisons among a large set of variables, then you can probably speed things up a lot with matrix multiplications. It may take some creativity, but hopefully this blog post can provide some inspiration.</p>
+<p><strong>Matrix multiplication using masked arrays does pairwise deletion and that’s very useful to know!</strong></p>
+<p>So if you also have missing data, then you can use matrix multiplications to obtain even more gains in efficiency! Simply use Numpy masked arrays.</p>
+<p>If you do decide to try out a similar solution for your measure/statistic, pay heed to <a href="#sec-details">Section&nbsp;6</a>. And watch out for the Numpy acceleration package <a href="https://jax.readthedocs.io/en/latest/index.html">Jax</a>. While it currently does not support <strong>masked arrays</strong>, perhaps it or some external package using Jax will do so in the future. That could be very useful.</p>
+<p>The solution I present here for <strong>percentage agreement</strong> and <strong>Cohen’s kappa</strong> is not currently implemented in any major Python package.</p>
 <p>Finally, watch out for my next post on how missing data are dealt with by current solutions that measure the <strong>covariance matrix</strong>, and why that matters.</p>
 
 
