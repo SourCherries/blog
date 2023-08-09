@@ -1,7 +1,7 @@
 ---
 title: "Why masked arrays are useful for data science. Part 1"
 author: "Carl Gaspar"
-date: "2023-08-01"
+date: "2023-08-09"
 categories: [numpy, missing data, pairwise comparisons]
 image: "image.jpg"
 number-sections: true
@@ -21,7 +21,7 @@ In this post I cover:
 
 1.  What matrix multiplication (**MM**) is (@sec-matmul)
 2.  Percentage agreement the slow way (@sec-agreement)
-2.  Percentage agreement (and Cohen's kappa) the fast way (@sec-vectorization)
+2.  Percentage agreement the fast way (@sec-vectorization)
 3.  Why missing data are a problem for **MM** (@sec-curse)
 4.  Show that Numpy masked arrays solves this problem (@sec-masked-arrays)
 5.  Give some pointers on optimization (@sec-details)
@@ -29,9 +29,11 @@ In this post I cover:
 
 The **covariance matrix** is another measure we can efficiently compute using **MM** and masked arrays. I am leaving that for another post where I also describe existing solutions (**coming soon**).
 
-The solution I describe here for efficient computation of **percentage agreement** (and **Cohen's kappa coefficient**) is not something in any major Python package.
+The solution I describe here for efficient computation of **percentage agreement** is not something in any major Python package. 
 
-But before we get to that, let's talk about **matrix multiplication** (**MM**).
+I also refer to a similar implementation of **Cohen's kappa** I coded (in #sec-masked-arrays). **Cohen's kappa** with efficient matrix-based handling of missing values is also missing in major Python packages.
+
+But before we get to all that, let's talk about **matrix multiplication** (**MM**).
 
 ## Sums of products. Lots of them, fast {#sec-matmul}
 
@@ -187,14 +189,19 @@ How much faster is this compared to the loop-based computation?
 number_samples = 1000
 number_variables = [10, 50, 100, 500, 1000]
 seconds = np.zeros((len(number_variables), 2))
+iterations = 36
+
 for i, nvl in enumerate(number_variables):
-    X = np.random.choice([0., 1.], size=(number_samples, nvl), replace=True)
-    tic = perf_counter(); percent_agreement = pa_loop(X); toc = perf_counter()
-    seconds_loop = toc-tic
-    tic = perf_counter(); percent_agreement = pa_vect(X); toc = perf_counter()
-    seconds_vect = toc-tic
-    seconds[i, 0] = seconds_loop
-    seconds[i, 1] = seconds_vect
+    for _ in range(iterations):
+        X = np.random.choice([0., 1.], size=(number_samples, nvl), replace=True)
+        tic = perf_counter(); percent_agreement = pa_loop(X); toc = perf_counter()
+        seconds_loop = toc-tic
+        tic = perf_counter(); percent_agreement = pa_vect(X); toc = perf_counter()
+        seconds_vect = toc-tic
+        seconds[i, 0] += seconds_loop
+        seconds[i, 1] += seconds_vect
+
+seconds /= iterations
     
 df = pd.DataFrame(seconds, 
                   columns=['loop','matrix-based'],
@@ -347,9 +354,9 @@ Or is it?
 
 As it turns out, [numpy masked arrays](https://numpy.org/doc/stable/reference/maskedarray.html) effectively performs pairwise deletion when a matrix multiplication is performed!
 
-Despite being of very valuable, this feature of masked arrays is not something that appears to be commonly appreciated in discussions of what makes masked arrays useful.
+Despite being very valuable, this feature of masked arrays is not something that appears to be commonly appreciated in discussions of what makes masked arrays useful.
 
-For example, see the top-rated responses to this query on [Stack Overflow](https://stackoverflow.com/questions/55987642/why-are-numpy-masked-arrays-useful) on *Why are Numpy masked arrays useful?*. As with these responses, practical examples from research or data science are typically not given.
+For example, see the top-rated responses to this [Stack Overflow query](https://stackoverflow.com/questions/55987642/why-are-numpy-masked-arrays-useful) on *Why are Numpy masked arrays useful?* Practical examples like what's presented here are hard to find.
 
 So let's make sure pairwise deletion is indeed performed using a matrix multiplication of masked arrays. I was not sure myself and had to check using numerous examples. Here is a really simple example I showed you before:
 
@@ -466,11 +473,11 @@ I do not think that my solution for Cohen's kappa would be useful for [scikit-le
 
 ## Nasty details for those interested {#sec-details}
 
-If you want to implement your own solution, you may want to know about Numpy optimization if you're not getting the gains you hoped for. 
+If you want to implement your own solution, you may want to know about Numpy optimization. Especially if you're not getting the gains you hoped for. 
 
-I highly recommend the [blog post by Shih-Chin on this topic](http://shihchinw.github.io/2019/03/performance-tips-of-numpy-ndarray.html). It is a well written and overall excellent resource!
+I highly recommend the [blog post by Shih-Chin on this topic](http://shihchinw.github.io/2019/03/performance-tips-of-numpy-ndarray.html). It is well written and informative!
 
-Here I point out one little detail you might have missed in the above code:
+Here I point out one little detail you might have missed in the my data-generation code:
 
 ``` {python}
 Xa = np.random.choice([0., 1.], size=(1000, 1000), replace=True)
@@ -481,53 +488,66 @@ print(f"Xb has data type {Xb.dtype}.")
 
 You might remember that the presence of missing values will automatically cast data type to `float`. So all the data in @sec-curse were `float64`.
 
-When I wrote about computation without missing values (@sec-vectorization), I was careful to keep this consistent and use floating value: like `Xa` in the above code and not like `Xb`! Why be so careful?
+When I wrote about computation without missing values (@sec-vectorization), I was careful to keep this consistent and also use floating value: like `Xa` in the above code and not like `Xb`! Why be so careful?
 
 As it turns out, this can have an effect on computational speed.
 
-```{python}
-tic = perf_counter(); np.dot(Xa.transpose(), Xa); toc = perf_counter()
-secs_order_1 = toc - tic
-
-tic = perf_counter(); np.dot(Xa, Xa.transpose()); toc = perf_counter()
-secs_order_2 = toc - tic
-
-print(f"np.dot(Xa.transpose(), Xa) took {secs_order_1} seconds.")
-print(f"np.dot(Xa, Xa.transpose()) took {secs_order_2} seconds.")
-```
-
-If your data type is float, as it must be when we have missing data, then you will want to matrix multiply the transpose of X with X rather than the other way around. The former is faster.
-
-Obviously, the transpose of X came first in our calculations because we set the columns of our data to be the variables. That way we get a pairwise comparisons of variables instead of samples. But clearly, we could have set the rows of our data to be the variables, in which case X transpose should come second.
-
-Now what happens if our data type is `int64` instead of `float64`?
+Let's see how long it takes to do matrix multiplication on `float64` with 2 different orders of operation:
 
 ```{python}
-tic = perf_counter(); np.dot(Xb.transpose(), Xb); toc = perf_counter()
-secs_order_1 = toc - tic
+import timeit
+iterations = 1000
 
-tic = perf_counter(); np.dot(Xb, Xb.transpose()); toc = perf_counter()
-secs_order_2 = toc - tic
-
-print(f"np.dot(Xb.transpose(), Xb) took {secs_order_1} seconds.")
-print(f"np.dot(Xb, Xb.transpose()) took {secs_order_2} seconds.")
+setup = """
+import numpy as np
+Xa = np.random.choice([0., 1.], size=(1000, 1000), replace=True)
+"""
+tf = timeit.Timer("np.dot(Xa.transpose(), Xa)", setup=setup)
+sec_order_1 = tf.timeit(number=iterations)/iterations
+tf = timeit.Timer("np.dot(Xa, Xa.transpose())", setup=setup)
+sec_order_2 = tf.timeit(number=iterations)/iterations
+print(f"np.dot(Xa.transpose(), Xa) took {sec_order_1} seconds.")
+print(f"np.dot(Xa, Xa.transpose()) took {sec_order_2} seconds.")
 ```
 
-Now things are much slower overall and we get the opposite pattern -- putting X transpose to the right side of our matrix multiplication is faster!
+A reader that is familiar with matrix computation will notice that `np.dot(Xa, Xa.transpose())` does not make sense for our data. The `X` used in this blog post has samples along rows and variables along columns. So `np.dot(Xa, Xa.transpose())` would give comparisons of samples not variables. If we had constructed `X` so that rows and columns were opposite then `np.dot(Xa, Xa.transpose())` would give us the desired comparisons of variables. 
 
-Why is this? That is not what this blog post is about. Take a deep dive into [the blog post by Shih-Chin](http://shihchinw.github.io/2019/03/performance-tips-of-numpy-ndarray.html).
+I included both orders because based on [Shih-Chin discussion of Numpy](http://shihchinw.github.io/2019/03/performance-tips-of-numpy-ndarray.html), I suspected there might be a difference. There is a small difference so I decided to stick to `X` with variables along columns (and use `np.dot(Xa.transpose(), Xa)`). That format is in keeping with Pandas format and most data science.
 
-Finally, this discussion ignores statistical issues in inference when we are performing pairwise deletion. If you are simply exploring your data or trying out different machine learning methods, then that's not such an issue. But keep in mind that the effect of pairwise deletion on inference are likely to be tricky.
+Now what happens when our data `X` is `int64` instead of `float64`?
+
+```{python}
+iterations = 50
+setup = """
+import numpy as np
+Xb = np.random.choice([0,  1],  size=(1000, 1000), replace=True)
+"""
+tf = timeit.Timer("np.dot(Xb.transpose(), Xb)", setup=setup)
+sec_order_1 = tf.timeit(number=iterations)/iterations
+tf = timeit.Timer("np.dot(Xb, Xb.transpose())", setup=setup)
+sec_order_2 = tf.timeit(number=iterations)/iterations
+print(f"np.dot(Xb.transpose(), Xb) took {sec_order_1} seconds.")
+print(f"np.dot(Xb, Xb.transpose()) took {sec_order_2} seconds.")
+```
+
+The most striking thing is that, regardless or operation order, computation of `int64` data is much slower! 
+
+**Even if your data are naturally integers it might make sense to cast them as float!** That of course does not apply with missing data (contains `nan`), but your data might be originally integer in another scenario.
+
+The second striking thing is that `np.dot(Xb, Xb.transpose())` is markedly faster than `np.dot(Xb.transpose(), Xb)`!
+
+**If your data are integer and you do not have missing values then you will want to construct your data with variables along rows and perform matrix multiplication with the transposed data on the right-hand side!**
+
+I should mention one more issue that is not computational but statistical.
+This discussion ignores how statistical inference works when we are performing pairwise deletion. If you are simply exploring your data or trying out different machine learning methods, then that's not such an issue. But keep in mind that the effect of pairwise deletion on inference is likely to be tricky.
 
 ## Conclusion {#sec-takeaway}
 
 If you need to compute a measure/statistic for all pairwise comparisons among a large set of variables, then you can probably speed things up a lot with matrix multiplications. It may take some creativity, but hopefully this blog post can provide some inspiration.
 
-**Matrix multiplication using masked arrays does pairwise deletion and that's very useful to know!**
+**If you have missing data then matrix multiplication using Numpy masked arrays does pairwise deletion efficiently and that's very useful to know!**
 
-So if you also have missing data, then you can use matrix multiplications to obtain even more gains in efficiency! Simply use Numpy masked arrays.
-
-If you do decide to try out a similar solution for your measure/statistic, pay heed to @sec-details. And watch out for the Numpy acceleration package [Jax](https://jax.readthedocs.io/en/latest/index.html). While it currently does not support **masked arrays**, perhaps it or some external package using Jax will do so in the future. That could be very useful.
+If you do decide to try out a similar solution for your measure/statistic, pay heed to @sec-details. And watch out for the Numpy acceleration package [Jax](https://jax.readthedocs.io/en/latest/index.html). While it currently does not support **masked arrays**, perhaps it or some external package using Jax will do so in the future. That could potentially make the gains described here even greater.
 
 The solution I present here for **percentage agreement** and **Cohen's kappa** is not currently implemented in any major Python package.
 

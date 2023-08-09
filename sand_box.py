@@ -510,6 +510,11 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Performance tests 1
+
+# 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 def pa_loop(X):
     number_samples, number_variables = X.shape
     percent_agreement = np.zeros((number_variables, number_variables))
@@ -518,16 +523,18 @@ def pa_loop(X):
             percent_agreement[item_a, item_b] = (X[:, item_a]==X[:, item_b]).sum()
     percent_agreement /= number_samples
     return(percent_agreement)
+# 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 
-def pa_loop_t(X):
-    number_variables, number_samples = X.shape
-    percent_agreement = np.zeros((number_variables, number_variables))
-    for item_a in range(number_variables):
-        for item_b in range(item_a+1, number_variables):
-            percent_agreement[item_a, item_b] = (X[item_a, :]==X[item_b, :]).sum()
-    percent_agreement /= number_samples
-    return(percent_agreement)
+# def pa_loop_t(X):
+#     number_variables, number_samples = X.shape
+#     percent_agreement = np.zeros((number_variables, number_variables))
+#     for item_a in range(number_variables):
+#         for item_b in range(item_a+1, number_variables):
+#             percent_agreement[item_a, item_b] = (X[item_a, :]==X[item_b, :]).sum()
+#     percent_agreement /= number_samples
+#     return(percent_agreement)
 
+# 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 def pa_vect(X):
     number_samples, _ = X.shape
     yesYes = np.dot(X.transpose(), X)   # counts of yes-yes (k x k)
@@ -537,26 +544,25 @@ def pa_vect(X):
     A = S / number_samples              # percentage agreements (k x k)   
     return(A)
 
-number_samples_large = 1000
-number_variables_large = [10, 50, 100, 500, 1000]
-seconds = np.zeros((len(number_variables_large), 3))
-for i, nvl in enumerate(number_variables_large):
-    print(str(i) + "\n")
-    X = np.random.choice([0., 1.], size=(number_samples_large, nvl), replace=True)
-    tic = perf_counter(); percent_agreement = pa_loop(X); toc = perf_counter()
-    seconds_loop = toc-tic
-    XT = X.transpose()
-    tic = perf_counter(); percent_agreement = pa_loop_t(XT); toc = perf_counter()
-    seconds_loop_t = toc-tic
-    tic = perf_counter(); percent_agreement = pa_vect(X); toc = perf_counter()
-    seconds_vect = toc-tic
-    seconds[i, 0] = seconds_loop
-    seconds[i, 1] = seconds_loop_t
-    seconds[i, 2] = seconds_vect
+number_samples = 1000
+number_variables = [10, 50, 100, 500, 1000]
+seconds = np.zeros((len(number_variables), 2))
+iterations = 36
+for i, nvl in enumerate(number_variables):
+    for _ in range(iterations):
+        X = np.random.choice([0., 1.], size=(number_samples, nvl), replace=True)
+        tic = perf_counter(); percent_agreement = pa_loop(X); toc = perf_counter()
+        seconds_loop = toc-tic
+        tic = perf_counter(); percent_agreement = pa_vect(X); toc = perf_counter()
+        seconds_vect = toc-tic
+        seconds[i, 0] += seconds_loop
+        seconds[i, 1] += seconds_vect
 
+seconds /= iterations    
 df = pd.DataFrame(seconds, 
-                  columns=['loop','loop_t','vectorized'],
-                  index=number_variables_large)
+                  columns=['loop','matrix-based'],
+                  index=number_variables)
+# 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 
 # seconds = np.array([[3.31700000e-04, 2.42221000e-04, 1.59303570e-02],
 #        [9.02653600e-03, 9.12693800e-03, 5.07415000e-04],
@@ -628,6 +634,12 @@ W = np.array([[0, 0, 0, M, 1, 1, 1, M],
               [0, M, 0, 1, 0, M, 0, 1],
               [M, 1, 1, 1, M, 0, 0, 0]]).transpose()
 X = np.r_[V, W]
+
+
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Performance tests 2
+# 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 def pa_loop_missing(X):
     _, number_variables = X.shape
     percent_agreement = np.zeros((number_variables, number_variables))
@@ -643,7 +655,7 @@ def pa_loop_missing(X):
                 totA = len(nx)
                 percent_agreement[item_a, item_b] = [sumA / totA if totA > 0 else math.nan][0]
     return(percent_agreement)
-
+# 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 
 
 # def pa_vect(X):
@@ -655,6 +667,7 @@ def pa_loop_missing(X):
 #     A = S / number_samples              # percentage agreements (k x k)   
 #     return(A)
 
+# 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 def pa_vect_missing(X):
     R = ma.masked_invalid(X)                # (n x k)
     yesYes = ma.dot(R.transpose(), R)       # counts of yes-yes (k x k)
@@ -670,27 +683,30 @@ def pa_vect_missing(X):
 
 
 responses, probs = [0., 1., M], [.4, .4, .2]
-number_samples_large = 1000
-number_variables_large = [10, 50, 100, 500, 1000]
+number_samples = 1000
+number_variables = [10, 50, 100, 500, 1000]
+seconds = np.zeros((len(number_variables), 2))
+iterations = 36
 
-seconds_missing = np.zeros((len(number_variables_large), 2))
-for i, nvl in enumerate(number_variables_large):
-    print(str(i) + "\n")
-    X = np.random.choice(responses, 
-                        size=(number_samples_large, nvl), 
-                        replace=True,
-                        p=probs)
-    tic = perf_counter(); percent_agreement = pa_loop_missing(X); toc = perf_counter()
-    seconds_loop = toc-tic
-    tic = perf_counter(); percent_agreement = pa_vect_missing(X); toc = perf_counter()
-    seconds_vect = toc-tic
-    seconds_missing[i, 0] = seconds_loop
-    seconds_missing[i, 1] = seconds_vect
+for i, nvl in enumerate(number_variables):
+    for _ in range(iterations):
+        X = np.random.choice(responses, 
+                            size=(number_samples, nvl), 
+                            replace=True,
+                            p=probs)
+        tic = perf_counter(); percent_agreement = pa_loop_missing(X); toc = perf_counter()
+        seconds_loop = toc-tic
+        tic = perf_counter(); percent_agreement = pa_vect_missing(X); toc = perf_counter()
+        seconds_vect = toc-tic
+        seconds[i, 0] += seconds_loop
+        seconds[i, 1] += seconds_vect
 
-df_missing = pd.DataFrame(seconds_missing, 
-                          columns=['loop','vectorized'],
-                          index=number_variables_large)
+seconds /= iterations
 
+df = pd.DataFrame(seconds, 
+                  columns=['loop','vectorized'],
+                  index=number_variables_large)
+# 🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀🚀
 
 
 # PRIORITY
@@ -717,3 +733,139 @@ df_missing = pd.DataFrame(seconds_missing,
 # Available platform plugins are: eglfs, minimal, minimalegl, offscreen, vnc, webgl, xcb.
 
 # Aborted
+
+time_this = "np.dot(X.transpose(), X)"
+setup = """
+import numpy as np
+X = np.random.choice([0., 1.], size=(1000, 1000), replace=True)
+"""
+tf = timeit.Timer(tran_first, setup=setup)
+
+sec = tf.timeit(number=1000)/1000
+
+
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Performance tests 1
+
+# Original code -----------------------------------------------------
+number_samples = 1000
+number_variables = [10, 50, 100, 500, 1000]
+seconds = np.zeros((len(number_variables), 2))
+for i, nvl in enumerate(number_variables):
+    X = np.random.choice([0., 1.], size=(number_samples, nvl), replace=True)
+    tic = perf_counter(); percent_agreement = pa_loop(X); toc = perf_counter()
+    seconds_loop = toc-tic
+    tic = perf_counter(); percent_agreement = pa_vect(X); toc = perf_counter()
+    seconds_vect = toc-tic
+    seconds[i, 0] = seconds_loop
+    seconds[i, 1] = seconds_vect
+    
+df = pd.DataFrame(seconds, 
+                  columns=['loop','matrix-based'],
+                  index=number_variables)
+df
+
+ # New code ---------------------------------------------------------
+number_samples = 1000
+number_variables = [10, 50, 100, 500, 1000]
+seconds = np.zeros((len(number_variables), 2))
+for i, nvl in enumerate(number_variables):
+    setup = """
+    import numpy as np
+    X = np.random.choice([0., 1.], size=(number_samples, nvl), replace=True)
+    """
+    setup = ("import numpy as np;" +
+             "X=np.random.choice([0., 1.], size=(1000, "+str(nvl)+"), replace=True)")
+    print(setup)
+    
+
+# single example using timeit
+setup = """
+import numpy as np
+def pa_loop(X):
+    number_samples, number_variables = X.shape
+    percent_agreement = np.zeros((number_variables, number_variables))
+    for item_a in range(number_variables):
+        for item_b in range(item_a+1, number_variables):
+            percent_agreement[item_a, item_b] = (X[:, item_a]==X[:, item_b]).sum()
+    percent_agreement /= number_samples
+    return(percent_agreement)
+X=np.random.choice([0., 1.], size=(1000, 10), replace=True)
+"""
+time_this = "pa_loop(X)"
+tf = timeit.Timer(time_this, setup=setup)
+sec = tf.timeit(number=1000)/1000
+
+# single example looping over perf_counter
+X=np.random.choice([0., 1.], size=(1000, 10), replace=True)
+secs = np.zeros((1000,))
+for i in range(1000):
+    tic = perf_counter(); percent_agreement = pa_loop(X); toc = perf_counter()
+    secs[i] = toc - tic
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+# Performance tests 2
+
+# Original code -----------------------------------------------------
+responses, probs = [0., 1., M], [.4, .4, .2]
+number_samples_large = 1000
+number_variables_large = [10, 50, 100, 500, 1000]
+seconds_missing = np.zeros((len(number_variables_large), 2))
+for i, nvl in enumerate(number_variables_large):
+    print(str(i) + "\n")
+    X = np.random.choice(responses, 
+                        size=(number_samples_large, nvl), 
+                        replace=True,
+                        p=probs)
+    tic = perf_counter(); percent_agreement = pa_loop_missing(X); toc = perf_counter()
+    seconds_loop = toc-tic
+    tic = perf_counter(); percent_agreement = pa_vect_missing(X); toc = perf_counter()
+    seconds_vect = toc-tic
+    seconds_missing[i, 0] = seconds_loop
+    seconds_missing[i, 1] = seconds_vect
+
+df_missing = pd.DataFrame(seconds_missing, 
+                          columns=['loop','vectorized'],
+                          index=number_variables_large)
+
+df.plot(loglog=True, xlabel="Number of variables", ylabel="Seconds")
+plt.show()
+
+ # New code ---------------------------------------------------------
+
+
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+Xa = np.random.choice([0., 1.], size=(1000, 1000), replace=True)
+Xb = np.random.choice([0,  1],  size=(1000, 1000), replace=True)
+print(f"Xa has data type {Xa.dtype}.")
+print(f"Xb has data type {Xb.dtype}.")
+
+
+import timeit
+iterations = 1000
+
+setup = """
+import numpy as np
+Xa = np.random.choice([0., 1.], size=(1000, 1000), replace=True)
+"""
+tf = timeit.Timer("np.dot(Xa.transpose(), Xa)", setup=setup)
+sec_order_1 = tf.timeit(number=iterations)/iterations
+tf = timeit.Timer("np.dot(Xa, Xa.transpose())", setup=setup)
+sec_order_2 = tf.timeit(number=iterations)/iterations
+print(f"np.dot(Xa.transpose(), Xa) took {sec_order_1} seconds.")
+print(f"np.dot(Xa, Xa.transpose()) took {sec_order_2} seconds.")
+
+
+iterations = 50
+setup = """
+import numpy as np
+Xb = np.random.choice([0,  1],  size=(1000, 1000), replace=True)
+"""
+tf = timeit.Timer("np.dot(Xb.transpose(), Xb)", setup=setup)
+sec_order_1 = tf.timeit(number=iterations)/iterations
+tf = timeit.Timer("np.dot(Xb, Xb.transpose())", setup=setup)
+sec_order_2 = tf.timeit(number=iterations)/iterations
+print(f"np.dot(Xb.transpose(), Xb) took {sec_order_1} seconds.")
+print(f"np.dot(Xb, Xb.transpose()) took {sec_order_2} seconds.")
