@@ -6,14 +6,29 @@ about:
   links:
     - icon: twitter
       text: Twitter
-      href: https://twitter.com
+      href: https://twitter.com/carl_m_gaspar
     - icon: linkedin
       text: LinkedIn
-      href: https://linkedin.com
+      href: www.linkedin.com/in/carl-gaspar-63408998
     - icon: github
       text: Github
-      href: https://github.com
-
+      href: https://github.com/SourCherries
 ---
 
-About this blog
+I research visual perception and neuroscience.
+
+I have also been dabbling in the social sciences.
+
+I have an ever-expanding **bag of tricks** that might be useful to others.
+
+Tricks for coding, analysis and data visualization.
+
+Some of those tricks are now going here.
+
+### Better blogs than this one
+
+[Gwern](https://gwern.net/)
+
+[Alex Guzey](https://guzey.com/)
+
+[Andrew Gelman](https://statmodeling.stat.columbia.edu/)

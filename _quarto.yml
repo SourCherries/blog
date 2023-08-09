@@ -3,14 +3,14 @@ project:
   output-dir: docs
 
 website:
-  title: "PersonalBlog"
+  title: "Carl Gaspar"
   navbar:
     right:
       - about.qmd
       - icon: github
-        href: https://github.com/
+        href: https://github.com/SourCherries
       - icon: twitter
-        href: https://twitter.com
+        href: https://twitter.com/carl_m_gaspar
 format:
   html:
     theme: litera # litera, united, cosmo
