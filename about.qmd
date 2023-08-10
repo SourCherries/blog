@@ -9,7 +9,7 @@ about:
       href: https://twitter.com/carl_m_gaspar
     - icon: linkedin
       text: LinkedIn
-      href: www.linkedin.com/in/carl-gaspar-63408998
+      href: https://www.linkedin.com/in/carl-gaspar-63408998/
     - icon: github
       text: Github
       href: https://github.com/SourCherries
