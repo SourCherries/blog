@@ -6,7 +6,7 @@ categories: [analysis, missing data, numpy, vectorization]
 number-sections: true
 comments:
   giscus: 
-    repo: gituser/gitrepo
+    repo: SourCherries/discussion
 ---
 
 Ever needed to compare lots of variables and missing data made things super slow?
