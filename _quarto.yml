@@ -18,3 +18,5 @@ format:
 
 editor: visual
 
+website:
+  twitter-card: true
