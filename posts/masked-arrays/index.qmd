@@ -7,6 +7,7 @@ number-sections: true
 comments:
   giscus: 
     repo: SourCherries/discussion
+image: tests-missing.svg
 ---
 
 Ever needed to compare lots of variables and missing data made things super slow?
@@ -420,28 +421,38 @@ def pa_vect_missing(X):
 And now let's compare our new loop- and matrix-based functions across a range of data sizes. Here I simulate binary responses with 20-percent missing data on average, randomly dispersed across sample and variable:
 
 ```{python}
+rng = np.random.default_rng(seed=12345)
+
 responses, probs = [0., 1., M], [.4, .4, .2]
 number_samples_large = 1000
 number_variables_large = [10, 50, 100, 500, 1000]
-
 seconds_missing = np.zeros((len(number_variables_large), 2))
+iterations = 2
+
 for i, nvl in enumerate(number_variables_large):
-    X = np.random.choice(responses, 
-                        size=(number_samples_large, nvl), 
-                        replace=True,
-                        p=probs)
-    tic = perf_counter(); percent_agreement = pa_loop_missing(X); toc = perf_counter()
+  for _ in range(iterations):
+    X = rng.choice(responses, 
+                   size=(number_samples_large, nvl), 
+                   replace=True,
+                   p=probs)
+    tic = perf_counter()
+    percent_agreement = pa_loop_missing(X)
+    toc = perf_counter()
     seconds_loop = toc-tic
-    tic = perf_counter(); percent_agreement = pa_vect_missing(X); toc = perf_counter()
+    tic = perf_counter()
+    percent_agreement = pa_vect_missing(X)
+    toc = perf_counter()
     seconds_vect = toc-tic
-    seconds_missing[i, 0] = seconds_loop
-    seconds_missing[i, 1] = seconds_vect
+    seconds_missing[i, 0] += seconds_loop
+    seconds_missing[i, 1] += seconds_vect
+
+seconds_missing /= iterations
 
 df_missing = pd.DataFrame(seconds_missing, 
                           columns=['loop','vectorized'],
                           index=number_variables_large)
 
-df.plot(loglog=True, xlabel="Number of variables", ylabel="Seconds")
+df_missing.plot(loglog=True, xlabel="Number of variables", ylabel="Seconds")
 plt.show()
 ```
 
@@ -450,12 +461,35 @@ Wow, is that an almost 1000-fold speed advantage for matrix-based computation?
 Again let's show ratios of time taken to see:
 
 ```{python}
-speed_up = seconds_missing[:,0] / seconds_missing[:,1]
-plt.semilogx(number_variables, speed_up)
-plt.xlabel("Number of variables")
-plt.ylabel("Speed advantage")
-plt.title("Matrix-based operation beats loops up to 1000 fold")
+speedup = seconds_missing[:,0]/seconds_missing[:,1]
+
+# Max speed-up rounded, for title
+power = np.floor(np.log10(speedup.max()))
+lower = np.floor(speedup.max() / 10**power) * 10**power
+
+import matplotlib.ticker as mticker
+
+fig, ax = plt.subplots(figsize=(7, 2.7), layout="constrained")
+ax.plot(number_variables_large, 
+        speedup, 
+        color='blue', 
+        linewidth=3, 
+        linestyle='-',
+        marker='o')
+ax.set_xscale("log")
+ax.set_xlabel("Number of variables")
+ax.set_ylabel("Speed advantage")
+ax.set_title("Vectorization up to ")
+ax.set_title(f"Vectorized code more than {lower:.0f}" + r"$\bf{X}$ faster than loops")
+ylim = ax.get_ylim()
+ax.set_ylim((1,ylim[1]))
+ticks_loc = ax.get_yticks().tolist()
+ax.yaxis.set_major_locator(mticker.FixedLocator(ticks_loc))
+ytickLabels = [str(int(n)) + r"$\bf{X}$" for n in ticks_loc]
+ax.set_yticklabels(ytickLabels)
 plt.show()
+
+fig.savefig("tests-missing.svg")
 ```
 
 Yes, indeed. An almost 1000-fold speed advantage!
