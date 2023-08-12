@@ -45,7 +45,7 @@ with plt.style.context(['fivethirtyeight','../featured.538style']):
     # plt.style.use('fivethirtyeight')  # fivethirtyeight, seaborn-poster
     # plt.style.use('../featured.538style')  # fivethirtyeight, seaborn-poster
     plt.subplots_adjust(left=0.20, right=0.80, top=0.85, bottom=0.20)
-    plt.show()
+    # plt.show()
     fig.savefig("featured.png", dpi=dpi, pad_inches=0.1*pixels_h/dpi)
 # featured.png: PNG image data, 700 x 270, 8-bit/color RGBA, non-interlaced
 #
