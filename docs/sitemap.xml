@@ -2,18 +2,22 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://sourcherries.github.io/blog/about.html</loc>
-    <lastmod>2023-08-12T08:07:02.721Z</lastmod>
+    <lastmod>2023-08-12T08:58:36.885Z</lastmod>
   </url>
   <url>
     <loc>https://sourcherries.github.io/blog/index.html</loc>
-    <lastmod>2023-08-12T08:07:03.877Z</lastmod>
+    <lastmod>2023-08-12T08:58:38.389Z</lastmod>
   </url>
   <url>
     <loc>https://sourcherries.github.io/blog/posts/masked-arrays/index.html</loc>
-    <lastmod>2023-08-12T08:07:06.385Z</lastmod>
+    <lastmod>2023-08-12T08:58:41.373Z</lastmod>
+  </url>
+  <url>
+    <loc>https://sourcherries.github.io/blog/posts/test-post/index.html</loc>
+    <lastmod>2023-08-12T08:58:42.508Z</lastmod>
   </url>
   <url>
     <loc>https://sourcherries.github.io/blog/todo.html</loc>
-    <lastmod>2023-08-12T08:07:06.879Z</lastmod>
+    <lastmod>2023-08-12T08:58:43.090Z</lastmod>
   </url>
 </urlset>

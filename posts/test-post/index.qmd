@@ -1,0 +1,15 @@
+---
+title: "Testing preview card"
+author: "Carl Gaspar"
+date: "2023-08-12"
+categories: [twitter, quarto]
+number-sections: true
+comments:
+  giscus: 
+    repo: SourCherries/discussion
+image: featured.jpg
+image-alt: "Test image"
+card-style: "summary"
+---
+
+This is a test post to see of `featured` image depends on location.

@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/test-post/index.html",
       "/posts/masked-arrays/index.html"
     ]
   }
