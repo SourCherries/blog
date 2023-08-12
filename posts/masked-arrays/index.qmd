@@ -7,7 +7,9 @@ number-sections: true
 comments:
   giscus: 
     repo: SourCherries/discussion
-image: tests-missing.svg
+image: featured.png
+image-alt: "Performance advantage for masked-matrix multiplication over loops"
+card-style: "summary"
 ---
 
 Ever needed to compare lots of variables and missing data made things super slow?

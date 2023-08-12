@@ -155,8 +155,47 @@ ul.task-list li input[type="checkbox"] {
 <li>CAS files</li>
 <li>Syllabi</li>
 </ol>
+<p># <a href="https://www.opengraph.xyz/">Preview for social media</a></p>
+<p>https://quarto.org/docs/websites/website-tools.html#twitter-cards</p>
+<p>https://quarto.org/docs/websites/website-tools.html#preview-images</p>
+</section>
+<section id="cynthia-huang" class="level1">
+<h1>Cynthia Huang</h1>
+<p>https://www.cynthiahqy.com/posts/twitter-card-quarto/</p>
+<section id="image" class="level2">
+<h2 class="anchored" data-anchor-id="image">Image</h2>
+<p>Change tests-missing.svg to featured.png</p>
+<ol type="1">
+<li>make_featured.py temporary script to test
+<ul>
+<li>write to png</li>
+<li>font sizes et cetera
+<ul>
+<li><code>print(plt.style.available)</code></li>
+<li><code>plt.style.use('ggplot')</code></li>
+<li><a href="https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html">gallery</a>
+<ul>
+<li>large font</li>
+<li><code>seaborn-poster</code></li>
+<li><code>fivethirtyeight</code></li>
+</ul></li>
+</ul></li>
+</ul></li>
+<li>copy code into qmd and re-render post
+<ul>
+<li>copy <strong>only fig format and export</strong></li>
+<li>name as “featured.png”</li>
+<li><strong>OR</strong> just export <em>tests-missing.csv</em> in qmd for separate script</li>
+</ul></li>
+</ol>
+</section>
+<section id="post" class="level2">
+<h2 class="anchored" data-anchor-id="post">Post</h2>
+<p>Add to index.qmd yml for masked-array post:</p>
+<p>image: featured.png image-alt: “Hand-drawn black and white wireframe sketch of a tweet containing a preview frame showing the text ‘TWITTER CARD?!?’” card-style: “summary”</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->

@@ -11,12 +11,13 @@ website:
         href: https://github.com/SourCherries
       - icon: twitter
         href: https://twitter.com/carl_m_gaspar
+  site-url: https://sourcherries.github.io/blog/
+  open-graph: true
+  twitter-card:
+    creator: "@carl_m_gaspar"
 format:
   html:
     theme: litera # litera, united, cosmo
     css: styles.css
 
 editor: visual
-
-website:
-  twitter-card: true

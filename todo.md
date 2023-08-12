@@ -30,3 +30,40 @@
  4. **Gaming manuscript**
  5. CAS files
  6. Syllabi
+
+
+
+ # 
+[Preview for social media](https://www.opengraph.xyz/)
+
+https://quarto.org/docs/websites/website-tools.html#twitter-cards
+
+https://quarto.org/docs/websites/website-tools.html#preview-images
+
+
+# Cynthia Huang
+https://www.cynthiahqy.com/posts/twitter-card-quarto/
+
+## Image
+Change tests-missing.svg to featured.png
+
+1. make_featured.py temporary script to test
+    - write to png
+    - font sizes et cetera
+        - `print(plt.style.available)`
+        - `plt.style.use('ggplot')`
+        - [gallery](https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html)
+            - large font
+            - `seaborn-poster`
+            - `fivethirtyeight`
+2. copy code into qmd and re-render post
+    - copy **only fig format and export**
+    - name as "featured.png"
+    - **OR** just export *tests-missing.csv* in qmd for separate script
+
+## Post
+Add to index.qmd yml for masked-array post:
+
+image: featured.png
+image-alt: "Hand-drawn black and white wireframe sketch of a tweet containing a preview frame showing the text 'TWITTER CARD?!?'"
+card-style: "summary"

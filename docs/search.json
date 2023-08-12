@@ -74,6 +74,20 @@
     "href": "todo.html",
     "title": "Carl Gaspar",
     "section": "",
-    "text": "Promotion\n\nStackoverflow reply with link to post 🚀\nThank you reply to Chinese guy with link to post 🚀\nSend to Alex Guzey 🚀\nFind image to share\n\nmasked-array post -> plot of speed up\nblog itself -> _________\n\nBlog Social Preview\n\n\nImages should be at least 640×320px (1280×640px for best display). 40pt border.\n\n\nImage for post\n\n\nThere’s a Social Preview?\n\n\nShare\n\n\nTwitter\nLinkedIn\n\n\nPut blog home page link on\n\n\nTwitter\nLinkedIn\nCV\n\n# ZU\n\nAdvisee\nSupervisee\nNeuro psychologist\nGaming manuscript\nCAS files\nSyllabi"
+    "text": "Stackoverflow reply with link to post 🚀\nThank you reply to Chinese guy with link to post 🚀\nSend to Alex Guzey 🚀\nFind image to share\n\nmasked-array post -> plot of speed up\nblog itself -> _________\n\nBlog Social Preview\n\n\nImages should be at least 640×320px (1280×640px for best display). 40pt border.\n\n\nImage for post\n\n\nThere’s a Social Preview?\n\n\nShare\n\n\nTwitter\nLinkedIn\n\n\nPut blog home page link on\n\n\nTwitter\nLinkedIn\nCV\n\n# ZU\n\nAdvisee\nSupervisee\nNeuro psychologist\nGaming manuscript\nCAS files\nSyllabi\n\n# Preview for social media\nhttps://quarto.org/docs/websites/website-tools.html#twitter-cards\nhttps://quarto.org/docs/websites/website-tools.html#preview-images"
+  },
+  {
+    "objectID": "todo.html#image",
+    "href": "todo.html#image",
+    "title": "Carl Gaspar",
+    "section": "Image",
+    "text": "Image\nChange tests-missing.svg to featured.png\n\nmake_featured.py temporary script to test\n\nwrite to png\nfont sizes et cetera\n\nprint(plt.style.available)\nplt.style.use('ggplot')\ngallery\n\nlarge font\nseaborn-poster\nfivethirtyeight\n\n\n\ncopy code into qmd and re-render post\n\ncopy only fig format and export\nname as “featured.png”\nOR just export tests-missing.csv in qmd for separate script"
+  },
+  {
+    "objectID": "todo.html#post",
+    "href": "todo.html#post",
+    "title": "Carl Gaspar",
+    "section": "Post",
+    "text": "Post\nAdd to index.qmd yml for masked-array post:\nimage: featured.png image-alt: “Hand-drawn black and white wireframe sketch of a tweet containing a preview frame showing the text ‘TWITTER CARD?!?’” card-style: “summary”"
   }
 ]
