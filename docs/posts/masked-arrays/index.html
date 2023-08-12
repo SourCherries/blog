@@ -352,7 +352,7 @@ Person 8       1       1       1       0</code></pre>
 <span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>toc <span class="op">=</span> perf_counter()</span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"Computing all pairwise percentage agreements took </span><span class="sc">{</span>toc<span class="op">-</span>tic<span class="sc">:0.4f}</span><span class="ss"> seconds."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>Computing all pairwise percentage agreements took 1.8262 seconds.</code></pre>
+<pre><code>Computing all pairwise percentage agreements took 1.8570 seconds.</code></pre>
 </div>
 </div>
 <p>This may not seem so bad. But consider that</p>
@@ -463,28 +463,28 @@ new = \lvert old-1 \rvert
   <tbody>
     <tr>
       <th>10</th>
-      <td>0.000170</td>
-      <td>0.000510</td>
+      <td>0.000217</td>
+      <td>0.000156</td>
     </tr>
     <tr>
       <th>50</th>
-      <td>0.004695</td>
-      <td>0.000219</td>
+      <td>0.005415</td>
+      <td>0.000235</td>
     </tr>
     <tr>
       <th>100</th>
-      <td>0.024745</td>
-      <td>0.000605</td>
+      <td>0.021027</td>
+      <td>0.000606</td>
     </tr>
     <tr>
       <th>500</th>
-      <td>0.497486</td>
-      <td>0.006731</td>
+      <td>0.500720</td>
+      <td>0.006657</td>
     </tr>
     <tr>
       <th>1000</th>
-      <td>1.910628</td>
-      <td>0.022473</td>
+      <td>1.909704</td>
+      <td>0.022183</td>
     </tr>
   </tbody>
 </table>
@@ -829,8 +829,8 @@ Xb has data type int64.</code></pre>
 <span id="cb42-12"><a href="#cb42-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"np.dot(Xa.transpose(), Xa) took </span><span class="sc">{</span>sec_order_1<span class="sc">}</span><span class="ss"> seconds."</span>)</span>
 <span id="cb42-13"><a href="#cb42-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"np.dot(Xa, Xa.transpose()) took </span><span class="sc">{</span>sec_order_2<span class="sc">}</span><span class="ss"> seconds."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>np.dot(Xa.transpose(), Xa) took 0.009303514758001256 seconds.
-np.dot(Xa, Xa.transpose()) took 0.008159338511000896 seconds.</code></pre>
+<pre><code>np.dot(Xa.transpose(), Xa) took 0.00926350842500142 seconds.
+np.dot(Xa, Xa.transpose()) took 0.008056458486000338 seconds.</code></pre>
 </div>
 </div>
 <p>A reader that is familiar with matrix computation will notice that <code>np.dot(Xa, Xa.transpose())</code> does not make sense for our data. The <code>X</code> used in this blog post has samples along rows and variables along columns. So <code>np.dot(Xa, Xa.transpose())</code> would give comparisons of samples not variables. If we had constructed <code>X</code> so that rows and columns were opposite then <code>np.dot(Xa, Xa.transpose())</code> would give us the desired comparisons of variables.</p>
@@ -849,8 +849,8 @@ np.dot(Xa, Xa.transpose()) took 0.008159338511000896 seconds.</code></pre>
 <span id="cb44-10"><a href="#cb44-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"np.dot(Xb.transpose(), Xb) took </span><span class="sc">{</span>sec_order_1<span class="sc">}</span><span class="ss"> seconds."</span>)</span>
 <span id="cb44-11"><a href="#cb44-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f"np.dot(Xb, Xb.transpose()) took </span><span class="sc">{</span>sec_order_2<span class="sc">}</span><span class="ss"> seconds."</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>np.dot(Xb.transpose(), Xb) took 1.0335188447400288 seconds.
-np.dot(Xb, Xb.transpose()) took 0.4774828857199827 seconds.</code></pre>
+<pre><code>np.dot(Xb.transpose(), Xb) took 1.0244241412799966 seconds.
+np.dot(Xb, Xb.transpose()) took 0.4779843139599689 seconds.</code></pre>
 </div>
 </div>
 <p>The most striking thing is that, regardless or operation order, computation of <code>int64</code> data is much slower!</p>
