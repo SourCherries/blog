@@ -456,6 +456,8 @@ df_missing = pd.DataFrame(seconds_missing,
 
 df_missing.plot(loglog=True, xlabel="Number of variables", ylabel="Seconds")
 plt.show()
+
+df_missing.to_csv("tests_missing.csv")
 ```
 
 Wow, is that an almost 1000-fold speed advantage for matrix-based computation?
