@@ -9,6 +9,9 @@ listing:
   filter-ui: false
 page-layout: full
 title-block-banner: true
+image: dice.jpg
+image-alt: "dice"
+card-style: "summary"
 ---
 
 Tricks for coding, data analysis and visualization

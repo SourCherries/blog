@@ -1,6 +1,8 @@
 ---
 title: "About"
 image: profile.jpg
+image-alt: "profile pic"
+card-style: "summary"
 about:
   template: jolla
   links:

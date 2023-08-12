@@ -11,7 +11,7 @@
     "href": "index.html",
     "title": "Bag of Tricks",
     "section": "",
-    "text": "Tricks for coding, data analysis and visualization\n\n\n\n\n\n\n\n\n  \n\n\n\n\nTesting preview card\n\n\n\n\n\n\n\ntwitter\n\n\nquarto\n\n\n\n\n\n\n\n\n\n\n\nAug 12, 2023\n\n\nCarl Gaspar\n\n\n\n\n\n\n  \n\n\n\n\nWhy masked arrays are useful for data science. Part 1\n\n\n\n\n\n\n\nanalysis\n\n\nmissing data\n\n\nnumpy\n\n\nvectorization\n\n\n\n\n\n\n\n\n\n\n\nAug 9, 2023\n\n\nCarl Gaspar\n\n\n\n\n\n\nNo matching items"
+    "text": "Tricks for coding, data analysis and visualization\n\n\n\n\n\n\n\n\n  \n\n\n\n\nWhy masked arrays are useful for data science. Part 1\n\n\n\n\n\n\n\nanalysis\n\n\nmissing data\n\n\nnumpy\n\n\nvectorization\n\n\n\n\n\n\n\n\n\n\n\nAug 9, 2023\n\n\nCarl Gaspar\n\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "posts/masked-arrays/index.html",
@@ -68,13 +68,6 @@
     "title": "Why masked arrays are useful for data science. Part 1",
     "section": "7 Conclusion",
     "text": "7 Conclusion\nIf you need to compute a measure/statistic for all pairwise comparisons among a large set of variables, then you can probably speed things up a lot with matrix multiplications. It may take some creativity, but hopefully this blog post can provide some inspiration.\nIf you have missing data then matrix multiplication using Numpy masked arrays does pairwise deletion efficiently and that’s very useful to know!\nIf you do decide to try out a similar solution for your measure/statistic, pay heed to Section 6. And watch out for the Numpy acceleration package Jax. While it currently does not support masked arrays, perhaps it or some external package using Jax will do so in the future. That could potentially make the gains described here even greater.\nThe solution I present here for percentage agreement and Cohen’s kappa is not currently implemented in any major Python package.\nFinally, watch out for my next post on how missing data are dealt with by current solutions that measure the covariance matrix, and why that matters."
-  },
-  {
-    "objectID": "posts/test-post/index.html",
-    "href": "posts/test-post/index.html",
-    "title": "Testing preview card",
-    "section": "",
-    "text": "This is a test post to see of featured image depends on location."
   },
   {
     "objectID": "todo.html",
